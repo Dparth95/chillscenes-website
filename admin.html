@@ -311,11 +311,12 @@ async function loadImageList() {
   const folderLinkEl = document.getElementById("folderLink");
   if (folderLinkEl && photosFolderUrl) folderLinkEl.href = photosFolderUrl;
 
-  const files = data.images || [];
+  const usedIds = new Set(PRODUCTS.map(p => p.imageId).filter(Boolean));
+  const files = (data.images || []).filter(f => !usedIds.has(f.id));
   imgGrid.innerHTML = files.map(f => `
     <button type="button" class="img-thumb" data-id="${f.id}" data-name="${f.name}">
       <img src="${f.url}" alt="${f.name}" loading="lazy">
-    </button>`).join("") || `<p style="color:var(--gray); font-size:.85rem;">No photos in your Photos folder yet — add some via the link below.</p>`;
+    </button>`).join("") || `<p style="color:var(--gray); font-size:.85rem;">No unused photos — add more to your Photos folder, or every photo there is already in use.</p>`;
 
   imgGrid.querySelectorAll(".img-thumb").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -414,10 +415,11 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
     document.getElementById("pName").value = "";
     document.getElementById("pPrice").value = "";
     document.getElementById("pDesc").value = "";
-    imgGrid.querySelectorAll(".img-thumb").forEach(b => b.classList.remove("selected"));
     selectedImageId = "";
     selectedImageName = "";
     selectedName.textContent = "No photo selected";
+    await refreshCatalog();
+    await loadImageList();
   } catch (err) {
     setStatus("err", "Failed: " + err.message);
   }
