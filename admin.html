@@ -26,10 +26,6 @@
     border:1px solid var(--border); color:var(--cream); font-family:inherit; font-size:.95rem;
   }
   .field textarea{resize:vertical; min-height:80px;}
-  .field input[type=file]{
-    width:100%; padding:12px; border-radius:10px; background:var(--card);
-    border:1px dashed var(--border); color:var(--gray); font-size:.85rem;
-  }
   .row2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
   .row3{display:grid; grid-template-columns:2fr 1fr 1fr; gap:12px;}
   .checkbox-row{display:flex; align-items:center; gap:10px; margin-bottom:26px;}
@@ -51,17 +47,15 @@
     color:var(--gray); flex-shrink:0;
   }
   .refresh-btn:hover{color:var(--orange); border-color:var(--orange);}
-  .divider-text{font-size:.78rem; color:var(--gray); margin:14px 0; text-align:center;}
   .panel{
     background:var(--card); border:1px solid var(--border); border-radius:14px; padding:22px;
-    margin-bottom:34px;
+    margin-bottom:26px;
   }
-  .panel h2{font-size:1.05rem; margin-bottom:16px; display:flex; align-items:center; gap:8px;}
-  .panel h2 i{color:var(--orange); font-size:.95rem;}
-  .section-label{font-size:.75rem; text-transform:uppercase; letter-spacing:.1em; color:var(--gray); margin:38px 0 16px;}
-  .connect-panel{display:grid; gap:14px; margin-bottom:16px;}
-  .connect-actions{display:flex; gap:12px; align-items:center;}
+  .panel h2{font-size:1rem; margin-bottom:16px; display:flex; align-items:center; gap:8px;}
+  .panel h2 i{color:var(--orange); font-size:.9rem;}
+  .panel-actions{display:flex; gap:12px; align-items:center; margin-top:4px;}
   .forget-link{font-size:.8rem; color:var(--gray); text-decoration:underline; cursor:pointer;}
+  .section-label{font-size:.75rem; text-transform:uppercase; letter-spacing:.1em; color:var(--gray); margin:38px 0 16px;}
 </style>
 </head>
 <body>
@@ -69,41 +63,46 @@
 <div class="admin-head">
   <a href="index.html" style="color:var(--gray); font-size:.85rem;">← Back to site</a>
   <h1 style="margin-top:14px;">Admin</h1>
-  <p>Works from your phone or PC — connects straight to your GitHub repo, no local files needed.
-  Drop photos into <code class="mono">images/products/</code> via GitHub whenever, then come here
-  to pick them and fill in the details.</p>
+  <p>Works from your phone or PC. No GitHub token needed — photos are read straight from your
+  public repo, product details are saved to your Google Sheet.</p>
 </div>
 
-<div class="status-bar" id="statusBar">
-  <i class="fa-solid fa-plug"></i>
-  <span id="statusText">Not connected — enter your repo details below.</span>
-</div>
-
-<div class="connect-panel">
+<div class="panel">
+  <h2><i class="fa-solid fa-image"></i> Photos (from GitHub)</h2>
   <div class="row2">
-    <div class="field" style="margin-bottom:0;">
+    <div class="field" style="margin-bottom:12px;">
       <label>GitHub username / org</label>
       <input type="text" id="ghOwner" placeholder="e.g. yourusername">
     </div>
-    <div class="field" style="margin-bottom:0;">
+    <div class="field" style="margin-bottom:12px;">
       <label>Repository name</label>
       <input type="text" id="ghRepo" placeholder="e.g. chillscenes3d-site">
     </div>
   </div>
-  <div class="row2">
-    <div class="field" style="margin-bottom:0;">
-      <label>Branch</label>
-      <input type="text" id="ghBranch" placeholder="main" value="main">
-    </div>
-    <div class="field" style="margin-bottom:0;">
-      <label>Personal Access Token</label>
-      <input type="password" id="ghToken" placeholder="ghp_...">
-    </div>
+  <div class="panel-actions">
+    <button class="btn btn-outline btn-sm" id="loadImagesBtn" type="button">Load Images</button>
   </div>
-  <div class="connect-actions">
-    <button class="btn" id="connectBtn">Connect</button>
+</div>
+
+<div class="panel">
+  <h2><i class="fa-solid fa-database"></i> Product Sheet</h2>
+  <div class="field" style="margin-bottom:12px;">
+    <label>Apps Script Web App URL</label>
+    <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
+  </div>
+  <div class="field" style="margin-bottom:12px;">
+    <label>Admin Passphrase</label>
+    <input type="password" id="adminKey" placeholder="the ADMIN_KEY you set in Apps Script">
+  </div>
+  <div class="panel-actions">
+    <button class="btn btn-outline btn-sm" id="connectBtn" type="button">Connect</button>
     <span class="forget-link" id="forgetLink">Forget saved connection</span>
   </div>
+</div>
+
+<div class="status-bar" id="statusBar">
+  <i class="fa-solid fa-circle-info"></i>
+  <span id="statusText">Load your images, then connect your Product Sheet, to begin.</span>
 </div>
 
 <fieldset id="formArea">
@@ -130,7 +129,7 @@
   <div class="field">
     <label>Product Image</label>
     <select id="imgSelect">
-      <option value="">— Select photo from images/products/ —</option>
+      <option value="">— Load images above first —</option>
     </select>
     <div class="img-picker-row">
       <img id="imgPreview" class="preview" style="display:none;">
@@ -138,8 +137,6 @@
         <i class="fa-solid fa-rotate"></i>
       </button>
     </div>
-    <p class="divider-text">— or upload a new photo now —</p>
-    <input type="file" id="imgFile" accept="image/*">
   </div>
 
   <div class="field">
@@ -174,19 +171,18 @@
 <div class="log" id="log"></div>
 
 <p class="helper">
-  <strong>Getting a token (one-time setup):</strong> on GitHub go to
-  <a href="https://github.com/settings/tokens?type=beta" target="_blank">Settings → Developer settings → Personal access tokens → Fine-grained tokens</a>,
-  generate one, give it access to only this repository, and grant <strong>Contents: Read and write</strong>
-  permission. Paste that token above.<br><br>
-  The token is saved only in this browser's local storage on this device — it's never written into
-  the site files. Use "Forget saved connection" on a shared device. Every change here commits straight
-  to your repo, so your live site updates the next time GitHub Pages rebuilds (usually under a minute).
+  <strong>First-time setup:</strong> deploy the Apps Script backend once — full steps in
+  <code class="mono">apps-script/README-apps-script.md</code> in your site folder. After that,
+  this page just needs your GitHub username/repo (no token — it only reads the public
+  <code class="mono">images/products/</code> folder) and your Web App URL + passphrase.
+  Both are remembered on this device; use "Forget saved connection" on a shared one.
 </p>
 
+<script src="js/config.js"></script>
 <script src="js/products.js"></script>
 <script>
-const GH_API = "https://api.github.com";
-let ghConfig = null;
+let scriptConfig = null;
+let repoConfig = null;
 
 const statusBar = document.getElementById("statusBar");
 const statusText = document.getElementById("statusText");
@@ -194,7 +190,6 @@ const formArea = document.getElementById("formArea");
 const log = document.getElementById("log");
 const catSelect = document.getElementById("pCategory");
 const imgSelect = document.getElementById("imgSelect");
-const imgFile = document.getElementById("imgFile");
 const imgPreview = document.getElementById("imgPreview");
 
 function refreshCategoryDropdown() {
@@ -209,161 +204,119 @@ function setStatus(type, msg) {
 function slugify(s) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
-function esc(s) {
-  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-}
 function logSuccess(label, sub) {
   const item = document.createElement("div");
   item.className = "log-item success";
   item.innerHTML = `<span>✓ ${label}</span><span class="mono" style="color:var(--gray)">${sub}</span>`;
   log.prepend(item);
 }
-function b64EncodeUnicode(str) { return btoa(unescape(encodeURIComponent(str))); }
-function b64DecodeUnicode(str) { return decodeURIComponent(escape(atob(str.replace(/\n/g, "")))); }
-
-/* ---------- GITHUB API HELPERS ---------- */
-function ghHeaders() {
-  return { "Authorization": `Bearer ${ghConfig.token}`, "Accept": "application/vnd.github+json" };
-}
-async function ghGet(path) {
-  const url = `${GH_API}/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${path}?ref=${encodeURIComponent(ghConfig.branch)}`;
-  const res = await fetch(url, { headers: ghHeaders() });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || `GitHub error ${res.status}`);
-  return data;
-}
-async function ghPut(path, base64Content, message, sha) {
-  const url = `${GH_API}/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${path}`;
-  const body = { message, content: base64Content, branch: ghConfig.branch };
-  if (sha) body.sha = sha;
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: { ...ghHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || `GitHub error ${res.status}`);
-  return data;
-}
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(",")[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+function maybeEnable() {
+  if (scriptConfig) formArea.classList.add("enabled");
 }
 
-/* ---------- CONNECT ---------- */
-const LS_KEY = "cs_admin_gh";
-function loadSavedConnection() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(LS_KEY));
-    if (saved) {
-      document.getElementById("ghOwner").value = saved.owner || "";
-      document.getElementById("ghRepo").value = saved.repo || "";
-      document.getElementById("ghBranch").value = saved.branch || "main";
-      document.getElementById("ghToken").value = saved.token || "";
-    }
-  } catch (e) {}
-}
-loadSavedConnection();
+/* ---------- LOAD SAVED SETTINGS ---------- */
+try {
+  const savedRepo = JSON.parse(localStorage.getItem("cs_admin_gh_repo"));
+  if (savedRepo) {
+    document.getElementById("ghOwner").value = savedRepo.owner || "";
+    document.getElementById("ghRepo").value = savedRepo.repo || "";
+  }
+  const savedScript = JSON.parse(localStorage.getItem("cs_admin_script"));
+  if (savedScript) {
+    document.getElementById("scriptUrl").value = savedScript.url || "";
+    document.getElementById("adminKey").value = savedScript.key || "";
+  } else if (typeof APPSCRIPT_URL !== "undefined" && APPSCRIPT_URL.indexOf("PASTE_YOUR") !== 0) {
+    document.getElementById("scriptUrl").value = APPSCRIPT_URL;
+  }
+} catch (e) {}
 
-document.getElementById("connectBtn").addEventListener("click", async () => {
+/* ---------- IMAGES (GitHub public read, no token) ---------- */
+async function loadImageList() {
   const owner = document.getElementById("ghOwner").value.trim();
   const repo = document.getElementById("ghRepo").value.trim();
-  const branch = document.getElementById("ghBranch").value.trim() || "main";
-  const token = document.getElementById("ghToken").value.trim();
-  if (!owner || !repo || !token) { setStatus("err", "Fill in username, repo and token."); return; }
-
-  ghConfig = { owner, repo, branch, token };
-  setStatus("ok", "Connecting…");
+  if (!owner || !repo) { setStatus("err", "Enter your GitHub username and repo name."); return; }
   try {
-    await ghGet("products.js");
-    localStorage.setItem(LS_KEY, JSON.stringify(ghConfig));
-    setStatus("ok", `Connected to ${owner}/${repo} (${branch})`);
-    formArea.classList.add("enabled");
-    await loadImageList();
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/images/products`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || `GitHub error ${res.status}`);
+    const files = data
+      .filter(i => i.type === "file" && /\.(jpe?g|png|webp|gif)$/i.test(i.name))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    imgSelect.innerHTML = `<option value="">— Select photo —</option>` +
+      files.map(f => `<option value="images/products/${f.name}" data-url="${f.download_url}">${f.name}</option>`).join("");
+    repoConfig = { owner, repo };
+    localStorage.setItem("cs_admin_gh_repo", JSON.stringify(repoConfig));
+    setStatus("ok", `Loaded ${files.length} image(s) from ${owner}/${repo}.`);
+    maybeEnable();
+  } catch (err) {
+    setStatus("err", "Couldn't load images: " + err.message);
+  }
+}
+document.getElementById("loadImagesBtn").addEventListener("click", loadImageList);
+document.getElementById("refreshImages").addEventListener("click", loadImageList);
+imgSelect.addEventListener("change", () => {
+  const opt = imgSelect.selectedOptions[0];
+  if (!opt || !opt.value) { imgPreview.style.display = "none"; return; }
+  imgPreview.src = opt.dataset.url;
+  imgPreview.style.display = "block";
+});
+if (repoConfig || document.getElementById("ghOwner").value) loadImageList();
+
+/* ---------- CONNECT TO SHEET (via Apps Script) ---------- */
+document.getElementById("connectBtn").addEventListener("click", async () => {
+  const url = document.getElementById("scriptUrl").value.trim();
+  const key = document.getElementById("adminKey").value.trim();
+  if (!url || !key) { setStatus("err", "Enter the Web App URL and your admin passphrase."); return; }
+  try {
+    const res = await fetch(`${url}?action=catalog`);
+    if (!res.ok) throw new Error("Couldn't reach the Web App — check the URL and deployment access.");
+    await res.json();
+    scriptConfig = { url, key };
+    localStorage.setItem("cs_admin_script", JSON.stringify(scriptConfig));
+    setStatus("ok", "Connected to your product sheet.");
+    maybeEnable();
   } catch (err) {
     setStatus("err", "Couldn't connect: " + err.message);
   }
 });
-
 document.getElementById("forgetLink").addEventListener("click", () => {
-  localStorage.removeItem(LS_KEY);
+  localStorage.removeItem("cs_admin_script");
+  localStorage.removeItem("cs_admin_gh_repo");
+  document.getElementById("scriptUrl").value = "";
+  document.getElementById("adminKey").value = "";
   document.getElementById("ghOwner").value = "";
   document.getElementById("ghRepo").value = "";
-  document.getElementById("ghBranch").value = "main";
-  document.getElementById("ghToken").value = "";
-  ghConfig = null;
+  scriptConfig = null; repoConfig = null;
   formArea.classList.remove("enabled");
   setStatus("ok", "Saved connection cleared on this device.");
 });
 
-/* ---------- IMAGE PICKER ---------- */
-async function loadImageList() {
-  try {
-    const items = await ghGet("images/products");
-    const files = (Array.isArray(items) ? items : [])
-      .filter(i => i.type === "file" && /\.(jpe?g|png|webp|gif)$/i.test(i.name))
-      .sort((a, b) => a.name.localeCompare(b.name));
-    imgSelect.innerHTML = `<option value="">— Select photo from images/products/ —</option>` +
-      files.map(f => `<option value="${f.name}" data-url="${f.download_url}">${f.name}</option>`).join("");
-  } catch (err) {
-    setStatus("err", "Couldn't list images: " + err.message);
-  }
+/* ---------- POST HELPER (text/plain avoids CORS preflight) ---------- */
+async function postToScript(payload) {
+  const res = await fetch(scriptConfig.url, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "Request failed");
+  return data;
 }
-document.getElementById("refreshImages").addEventListener("click", async () => {
-  await loadImageList();
-  setStatus("ok", "Image list refreshed.");
-});
-imgSelect.addEventListener("change", () => {
-  const opt = imgSelect.selectedOptions[0];
-  if (!opt || !opt.value) { imgPreview.style.display = "none"; return; }
-  imgFile.value = "";
-  imgPreview.src = opt.dataset.url;
-  imgPreview.style.display = "block";
-});
-imgFile.addEventListener("change", () => {
-  const f = imgFile.files[0];
-  if (f) {
-    imgSelect.value = "";
-    imgPreview.src = URL.createObjectURL(f);
-    imgPreview.style.display = "block";
-  }
-});
 
 /* ---------- ADD CATEGORY ---------- */
 document.getElementById("addCategoryBtn").addEventListener("click", async () => {
-  if (!ghConfig) { setStatus("err", "Connect first."); return; }
+  if (!scriptConfig) { setStatus("err", "Connect your Product Sheet first."); return; }
   const name = document.getElementById("catName").value.trim();
   const icon = document.getElementById("catIcon").value.trim() || "🧩";
   if (!name) { setStatus("err", "Enter a category name."); return; }
 
   try {
-    const file = await ghGet("products.js");
-    let text = b64DecodeUnicode(file.content);
-
-    let slug = slugify(name);
-    const existingSlugs = [...text.matchAll(/slug:\s*"([^"]+)"/g)].map(m => m[1]);
-    if (existingSlugs.includes(slug)) { setStatus("err", `Category "${slug}" already exists.`); return; }
-
-    const startIdx = text.indexOf("const CATEGORIES = [");
-    if (startIdx === -1) throw new Error("Couldn't find CATEGORIES array in products.js");
-    const closeIdx = text.indexOf("\n];", startIdx);
-    if (closeIdx === -1) throw new Error("Couldn't find end of CATEGORIES array");
-
-    const entry = `  { slug: "${slug}", name: "${esc(name)}", icon: "${esc(icon)}" },\n`;
-    text = text.slice(0, closeIdx) + "\n" + entry.trimEnd() + text.slice(closeIdx);
-
-    await ghPut("products.js", b64EncodeUnicode(text), `Add category: ${name}`, file.sha);
-
-    CATEGORIES.push({ slug, name, icon });
+    const data = await postToScript({ action: "addCategory", key: scriptConfig.key, name, icon });
+    CATEGORIES.push({ slug: data.slug, name, icon });
     refreshCategoryDropdown();
-    catSelect.value = slug;
-
-    setStatus("ok", `Category "${name}" committed to GitHub.`);
-    logSuccess(`Category: ${name}`, slug);
+    catSelect.value = data.slug;
+    setStatus("ok", `Category "${name}" added.`);
+    logSuccess(`Category: ${name}`, data.slug);
     document.getElementById("catName").value = "";
     document.getElementById("catIcon").value = "";
   } catch (err) {
@@ -373,62 +326,31 @@ document.getElementById("addCategoryBtn").addEventListener("click", async () => 
 
 /* ---------- ADD PRODUCT ---------- */
 document.getElementById("submitBtn").addEventListener("click", async () => {
-  if (!ghConfig) { setStatus("err", "Connect first."); return; }
+  if (!scriptConfig) { setStatus("err", "Connect your Product Sheet first."); return; }
 
-  const uploadedFile = imgFile.files[0];
-  const existingImage = imgSelect.value;
+  const image = imgSelect.value;
   const name = document.getElementById("pName").value.trim();
   const price = document.getElementById("pPrice").value.trim();
   const category = catSelect.value;
   const desc = document.getElementById("pDesc").value.trim();
   const featured = document.getElementById("pFeatured").checked;
 
-  if ((!uploadedFile && !existingImage) || !name || !price || !desc) {
-    setStatus("err", "Select/upload an image, and fill in name, price and description.");
+  if (!image || !name || !price || !desc) {
+    setStatus("err", "Select an image, and fill in name, price and description.");
     return;
   }
 
   try {
     setStatus("ok", "Saving…");
-    const file = await ghGet("products.js");
-    let text = b64DecodeUnicode(file.content);
-
-    let id = slugify(name);
-    const existingIds = [...text.matchAll(/id:\s*"([^"]+)"/g)].map(m => m[1]);
-    let suffix = 2, finalId = id;
-    while (existingIds.includes(finalId)) { finalId = `${id}-${suffix++}`; }
-
-    let filename;
-    if (uploadedFile) {
-      const ext = uploadedFile.name.split(".").pop().toLowerCase();
-      filename = `${finalId}.${ext}`;
-      const base64Img = await fileToBase64(uploadedFile);
-      await ghPut(`images/products/${filename}`, base64Img, `Add product image: ${filename}`);
-    } else {
-      filename = existingImage;
-    }
-
-    const entry = `  { id: "${finalId}", name: "${esc(name)}", price: ${Number(price)}, category: "${category}",\n    image: "images/products/${filename}", desc: "${esc(desc)}", featured: ${featured} },\n`;
-
-    const startIdx = text.indexOf("const PRODUCTS = [");
-    if (startIdx === -1) throw new Error("Couldn't find PRODUCTS array in products.js");
-    const closeIdx = text.indexOf("\n];", startIdx);
-    if (closeIdx === -1) throw new Error("Couldn't find end of PRODUCTS array");
-
-    text = text.slice(0, closeIdx) + "\n" + entry.trimEnd() + text.slice(closeIdx);
-
-    await ghPut("products.js", b64EncodeUnicode(text), `Add product: ${name}`, file.sha);
-
-    setStatus("ok", `"${name}" committed to GitHub — live shortly.`);
-    logSuccess(name, finalId);
+    const data = await postToScript({ action: "addProduct", key: scriptConfig.key, name, price: Number(price), category, image, desc, featured });
+    setStatus("ok", `"${name}" saved — live on the site shortly.`);
+    logSuccess(name, data.id);
 
     document.getElementById("pName").value = "";
     document.getElementById("pPrice").value = "";
     document.getElementById("pDesc").value = "";
-    imgFile.value = "";
     imgSelect.value = "";
     imgPreview.style.display = "none";
-    if (uploadedFile) await loadImageList();
   } catch (err) {
     setStatus("err", "Failed: " + err.message);
   }
