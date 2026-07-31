@@ -18,11 +18,20 @@ function productCard(p) {
     </div>`;
 }
 
+/* Only categories with at least one product show on the live site —
+   admin.html still sees every category (it needs to, to assign the first
+   product to a brand-new one). */
+function categoriesInUse() {
+  const used = new Set();
+  PRODUCTS.forEach(p => p.categories.forEach(c => used.add(c)));
+  return CATEGORIES.filter(c => used.has(c.slug));
+}
+
 /* ---------- HOMEPAGE ---------- */
 function renderCategoryGrid() {
   const el = document.getElementById("categoryGrid");
   if (!el) return;
-  el.innerHTML = CATEGORIES.map(c => {
+  el.innerHTML = categoriesInUse().map(c => {
     const count = PRODUCTS.filter(p => p.categories.includes(c.slug)).length;
     return `
       <a href="shop.html?category=${c.slug}" class="cat-card reveal">
@@ -48,7 +57,7 @@ function renderShop() {
   let active = params.get("category") || "all";
 
   function draw() {
-    tabsEl.innerHTML = ["all", ...CATEGORIES.map(c => c.slug)].map(slug => {
+    tabsEl.innerHTML = ["all", ...categoriesInUse().map(c => c.slug)].map(slug => {
       const label = slug === "all" ? "All" : getCategory(slug).name;
       return `<button class="tab ${slug === active ? "active" : ""}" data-slug="${slug}">${label}</button>`;
     }).join("");
