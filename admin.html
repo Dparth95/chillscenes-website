@@ -203,7 +203,8 @@ const log = document.getElementById("log");
 const catSelect = document.getElementById("pCategory");
 const imgGrid = document.getElementById("imgGrid");
 const selectedName = document.getElementById("selectedName");
-let selectedImage = "";
+let selectedImageId = "";
+let selectedImageName = "";
 
 function refreshCategoryDropdown() {
   catSelect.innerHTML = CATEGORIES.map(c => `<option value="${c.slug}">${c.icon} ${c.name}</option>`).join("");
@@ -312,7 +313,7 @@ async function loadImageList() {
 
   const files = data.images || [];
   imgGrid.innerHTML = files.map(f => `
-    <button type="button" class="img-thumb" data-path="${f.url}" data-name="${f.name}">
+    <button type="button" class="img-thumb" data-id="${f.id}" data-name="${f.name}">
       <img src="${f.url}" alt="${f.name}" loading="lazy">
     </button>`).join("") || `<p style="color:var(--gray); font-size:.85rem;">No photos in your Photos folder yet — add some via the link below.</p>`;
 
@@ -320,7 +321,8 @@ async function loadImageList() {
     btn.addEventListener("click", () => {
       imgGrid.querySelectorAll(".img-thumb").forEach(b => b.classList.remove("selected"));
       btn.classList.add("selected");
-      selectedImage = btn.dataset.path;
+      selectedImageId = btn.dataset.id;
+      selectedImageName = btn.dataset.name;
       selectedName.textContent = btn.dataset.name;
     });
   });
@@ -398,14 +400,14 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
   const desc = document.getElementById("pDesc").value.trim();
   const featured = document.getElementById("pFeatured").checked;
 
-  if (!selectedImage || !name || !price || !desc) {
+  if (!selectedImageId || !name || !price || !desc) {
     setStatus("err", "Select a photo, and fill in name, price and description.");
     return;
   }
 
   try {
     setStatus("ok", "Saving…");
-    const data = await postToScript({ action: "addProduct", name, price: Number(price), category, image: selectedImage, desc, featured });
+    const data = await postToScript({ action: "addProduct", name, price: Number(price), category, imageId: selectedImageId, imageName: selectedImageName, desc, featured });
     setStatus("ok", `"${name}" saved — live on the site shortly.`);
     logSuccess(name, data.id);
 
@@ -413,7 +415,8 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
     document.getElementById("pPrice").value = "";
     document.getElementById("pDesc").value = "";
     imgGrid.querySelectorAll(".img-thumb").forEach(b => b.classList.remove("selected"));
-    selectedImage = "";
+    selectedImageId = "";
+    selectedImageName = "";
     selectedName.textContent = "No photo selected";
   } catch (err) {
     setStatus("err", "Failed: " + err.message);
