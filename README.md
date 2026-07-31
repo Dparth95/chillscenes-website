@@ -8,10 +8,19 @@ Static site, no build step. Cart uses `localStorage`; checkout opens WhatsApp
 2. Open `js/products.js`, find the product, change `image: "images/products/placeholder.jpg"`
    to your file, e.g. `image: "images/products/magnet-city-skyline.jpg"`.
 
-## Add a new product — via form (recommended)
-Open `admin.html` in Chrome or Edge, click **Connect Site Folder** and select this
-folder, then fill in image/name/price/category/description and submit. It writes
-the image into `images/products/` and appends the entry to `products.js` for you.
+## Site logo
+Replace `images/logo.png` with your real logo (square works best, ~160×160px+, PNG with
+transparent background). It shows next to the brand name in the header on every page.
+
+## Add photos + products (recommended workflow)
+1. Add your photo files directly into `images/products/` (via git, however you normally push files).
+2. Open `admin.html` in Chrome or Edge, click **Connect Site Folder**, select this site folder.
+3. Use **New Category** at the top if you need a category that doesn't exist yet.
+4. In **Add Product**, pick the photo from the dropdown (it lists everything in `images/products/`),
+   fill in name/price/category/description, submit. It updates `products.js` for you — no manual editing.
+   (You can also upload a brand-new photo right from the form instead of picking an existing one.)
+5. `git add`, `commit`, `push`.
+
 If double-clicking `admin.html` doesn't let you connect, run a local server:
 `python3 -m http.server` in this folder, then open `http://localhost:8000/admin.html`.
 
