@@ -10,18 +10,18 @@
 <link rel="stylesheet" href="css/style.css">
 <style>
   body{max-width:640px; margin:0 auto; padding:60px 24px 100px;}
-  .admin-head{margin-bottom:36px;}
+  .admin-head{margin-bottom:28px;}
   .admin-head h1{font-size:1.8rem; margin-bottom:8px;}
   .admin-head p{color:var(--gray); font-size:.92rem;}
   .status-bar{
     display:flex; align-items:center; gap:12px; padding:16px 18px; border-radius:12px;
-    background:var(--card); border:1px solid var(--border); margin-bottom:24px; font-size:.9rem;
+    background:var(--card); border:1px solid var(--border); margin-bottom:30px; font-size:.9rem;
   }
   .status-bar.ok{border-color:rgba(33,199,168,.4); color:var(--teal);}
   .status-bar.err{border-color:rgba(255,90,90,.4); color:#ff8080;}
   .field{margin-bottom:20px;}
   .field label{display:block; font-size:.85rem; color:var(--gray); margin-bottom:8px;}
-  .field input[type=text], .field input[type=password], .field input[type=number], .field select, .field textarea{
+  .field input[type=text], .field input[type=number], .field select, .field textarea{
     width:100%; padding:13px 16px; border-radius:10px; background:var(--card);
     border:1px solid var(--border); color:var(--cream); font-family:inherit; font-size:.95rem;
   }
@@ -38,23 +38,35 @@
     border:1px solid var(--border); display:flex; justify-content:space-between; gap:10px;
   }
   .log-item.success{border-color:rgba(33,199,168,.35);}
-  .preview{width:64px; height:64px; border-radius:8px; object-fit:cover; border:1px solid var(--border); background:var(--card);}
+  .img-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(84px,1fr)); gap:10px; margin-top:12px;
+  }
+  .img-grid button{
+    padding:0; border-radius:10px; overflow:hidden; border:2px solid var(--border); background:var(--card);
+    aspect-ratio:1/1; cursor:pointer; position:relative;
+  }
+  .img-grid button img{width:100%; height:100%; object-fit:cover; display:block;}
+  .img-grid button.selected{border-color:var(--orange);}
+  .img-grid button.selected::after{
+    content:"✓"; position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%;
+    background:var(--orange); color:#0b0e14; font-size:.7rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .selected-name{font-size:.8rem; color:var(--gray); margin-top:10px;}
   .helper{font-size:.78rem; color:var(--gray); margin-top:24px; line-height:1.7;}
   .helper a{color:var(--orange);}
-  .img-picker-row{display:flex; align-items:center; gap:12px; margin-top:10px;}
+  .refresh-row{display:flex; justify-content:space-between; align-items:center; margin-top:12px;}
   .refresh-btn{
-    width:44px; height:44px; border-radius:10px; background:var(--card); border:1px solid var(--border);
-    color:var(--gray); flex-shrink:0;
+    width:36px; height:36px; border-radius:8px; background:var(--card); border:1px solid var(--border);
+    color:var(--gray);
   }
   .refresh-btn:hover{color:var(--orange); border-color:var(--orange);}
   .panel{
     background:var(--card); border:1px solid var(--border); border-radius:14px; padding:22px;
-    margin-bottom:26px;
+    margin-bottom:34px;
   }
-  .panel h2{font-size:1rem; margin-bottom:16px; display:flex; align-items:center; gap:8px;}
-  .panel h2 i{color:var(--orange); font-size:.9rem;}
-  .panel-actions{display:flex; gap:12px; align-items:center; margin-top:4px;}
-  .forget-link{font-size:.8rem; color:var(--gray); text-decoration:underline; cursor:pointer;}
+  .panel h2{font-size:1.05rem; margin-bottom:16px; display:flex; align-items:center; gap:8px;}
+  .panel h2 i{color:var(--orange); font-size:.95rem;}
   .section-label{font-size:.75rem; text-transform:uppercase; letter-spacing:.1em; color:var(--gray); margin:38px 0 16px;}
 </style>
 </head>
@@ -62,47 +74,13 @@
 
 <div class="admin-head">
   <a href="index.html" style="color:var(--gray); font-size:.85rem;">← Back to site</a>
-  <h1 style="margin-top:14px;">Admin</h1>
-  <p>Works from your phone or PC. No GitHub token needed — photos are read straight from your
-  public repo, product details are saved to your Google Sheet.</p>
-</div>
-
-<div class="panel">
-  <h2><i class="fa-solid fa-image"></i> Photos (from GitHub)</h2>
-  <div class="row2">
-    <div class="field" style="margin-bottom:12px;">
-      <label>GitHub username / org</label>
-      <input type="text" id="ghOwner" placeholder="e.g. yourusername">
-    </div>
-    <div class="field" style="margin-bottom:12px;">
-      <label>Repository name</label>
-      <input type="text" id="ghRepo" placeholder="e.g. chillscenes3d-site">
-    </div>
-  </div>
-  <div class="panel-actions">
-    <button class="btn btn-outline btn-sm" id="loadImagesBtn" type="button">Load Images</button>
-  </div>
-</div>
-
-<div class="panel">
-  <h2><i class="fa-solid fa-database"></i> Product Sheet</h2>
-  <div class="field" style="margin-bottom:12px;">
-    <label>Apps Script Web App URL</label>
-    <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
-  </div>
-  <div class="field" style="margin-bottom:12px;">
-    <label>Admin Passphrase</label>
-    <input type="password" id="adminKey" placeholder="the ADMIN_KEY you set in Apps Script">
-  </div>
-  <div class="panel-actions">
-    <button class="btn btn-outline btn-sm" id="connectBtn" type="button">Connect</button>
-    <span class="forget-link" id="forgetLink">Forget saved connection</span>
-  </div>
+  <h1 style="margin-top:14px;">Add Product</h1>
+  <p>Pick a photo, fill in the details, submit. Works the same on phone or PC.</p>
 </div>
 
 <div class="status-bar" id="statusBar">
-  <i class="fa-solid fa-circle-info"></i>
-  <span id="statusText">Load your images, then connect your Product Sheet, to begin.</span>
+  <i class="fa-solid fa-circle-notch fa-spin"></i>
+  <span id="statusText">Loading…</span>
 </div>
 
 <fieldset id="formArea">
@@ -127,13 +105,12 @@
   <div class="section-label">Add Product</div>
 
   <div class="field">
-    <label>Product Image</label>
-    <select id="imgSelect">
-      <option value="">— Load images above first —</option>
-    </select>
-    <div class="img-picker-row">
-      <img id="imgPreview" class="preview" style="display:none;">
-      <button type="button" class="refresh-btn" id="refreshImages" title="Refresh image list">
+    <label>Product Image — tap to select</label>
+    <div class="img-grid" id="imgGrid"></div>
+    <div class="selected-name" id="selectedName">No photo selected</div>
+    <div class="refresh-row">
+      <span></span>
+      <button type="button" class="refresh-btn" id="refreshImages" title="Refresh photo list">
         <i class="fa-solid fa-rotate"></i>
       </button>
     </div>
@@ -171,26 +148,22 @@
 <div class="log" id="log"></div>
 
 <p class="helper">
-  <strong>First-time setup:</strong> deploy the Apps Script backend once — full steps in
-  <code class="mono">apps-script/README-apps-script.md</code> in your site folder. After that,
-  this page just needs your GitHub username/repo (no token — it only reads the public
-  <code class="mono">images/products/</code> folder) and your Web App URL + passphrase.
-  Both are remembered on this device; use "Forget saved connection" on a shared one.
+  Only one thing to set up: <code class="mono">js/config.js</code> needs your Apps Script Web App
+  URL (see <code class="mono">apps-script/README-apps-script.md</code>). Photos are read straight
+  from <code class="mono">images/products/</code> in this repo — nothing to configure for that.
 </p>
 
 <script src="js/config.js"></script>
 <script src="js/products.js"></script>
 <script>
-let scriptConfig = null;
-let repoConfig = null;
-
 const statusBar = document.getElementById("statusBar");
 const statusText = document.getElementById("statusText");
 const formArea = document.getElementById("formArea");
 const log = document.getElementById("log");
 const catSelect = document.getElementById("pCategory");
-const imgSelect = document.getElementById("imgSelect");
-const imgPreview = document.getElementById("imgPreview");
+const imgGrid = document.getElementById("imgGrid");
+const selectedName = document.getElementById("selectedName");
+let selectedImage = "";
 
 function refreshCategoryDropdown() {
   catSelect.innerHTML = CATEGORIES.map(c => `<option value="${c.slug}">${c.icon} ${c.name}</option>`).join("");
@@ -210,90 +183,76 @@ function logSuccess(label, sub) {
   item.innerHTML = `<span>✓ ${label}</span><span class="mono" style="color:var(--gray)">${sub}</span>`;
   log.prepend(item);
 }
-function maybeEnable() {
-  if (scriptConfig) formArea.classList.add("enabled");
+
+/* ---------- AUTO-DETECT REPO FROM THIS PAGE'S OWN URL ---------- */
+function detectRepo() {
+  const host = location.hostname;
+  if (!host.endsWith(".github.io")) return null;
+  const owner = host.split(".")[0];
+  const parts = location.pathname.split("/").filter(Boolean);
+  const repo = parts.length > 0 ? parts[0] : (owner + ".github.io");
+  return { owner, repo };
 }
 
-/* ---------- LOAD SAVED SETTINGS ---------- */
-try {
-  const savedRepo = JSON.parse(localStorage.getItem("cs_admin_gh_repo"));
-  if (savedRepo) {
-    document.getElementById("ghOwner").value = savedRepo.owner || "";
-    document.getElementById("ghRepo").value = savedRepo.repo || "";
-  }
-  const savedScript = JSON.parse(localStorage.getItem("cs_admin_script"));
-  if (savedScript) {
-    document.getElementById("scriptUrl").value = savedScript.url || "";
-    document.getElementById("adminKey").value = savedScript.key || "";
-  } else if (typeof APPSCRIPT_URL !== "undefined" && APPSCRIPT_URL.indexOf("PASTE_YOUR") !== 0) {
-    document.getElementById("scriptUrl").value = APPSCRIPT_URL;
-  }
-} catch (e) {}
-
-/* ---------- IMAGES (GitHub public read, no token) ---------- */
+/* ---------- IMAGES (public GitHub read, no token) ---------- */
 async function loadImageList() {
-  const owner = document.getElementById("ghOwner").value.trim();
-  const repo = document.getElementById("ghRepo").value.trim();
-  if (!owner || !repo) { setStatus("err", "Enter your GitHub username and repo name."); return; }
-  try {
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/images/products`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || `GitHub error ${res.status}`);
-    const files = data
-      .filter(i => i.type === "file" && /\.(jpe?g|png|webp|gif)$/i.test(i.name))
-      .sort((a, b) => a.name.localeCompare(b.name));
-    imgSelect.innerHTML = `<option value="">— Select photo —</option>` +
-      files.map(f => `<option value="images/products/${f.name}" data-url="${f.download_url}">${f.name}</option>`).join("");
-    repoConfig = { owner, repo };
-    localStorage.setItem("cs_admin_gh_repo", JSON.stringify(repoConfig));
-    setStatus("ok", `Loaded ${files.length} image(s) from ${owner}/${repo}.`);
-    maybeEnable();
-  } catch (err) {
-    setStatus("err", "Couldn't load images: " + err.message);
+  const repoInfo = detectRepo();
+  if (!repoInfo) {
+    imgGrid.innerHTML = `<p style="color:var(--gray); font-size:.85rem;">Open this page via your github.io site to browse photos.</p>`;
+    return 0;
   }
-}
-document.getElementById("loadImagesBtn").addEventListener("click", loadImageList);
-document.getElementById("refreshImages").addEventListener("click", loadImageList);
-imgSelect.addEventListener("change", () => {
-  const opt = imgSelect.selectedOptions[0];
-  if (!opt || !opt.value) { imgPreview.style.display = "none"; return; }
-  imgPreview.src = opt.dataset.url;
-  imgPreview.style.display = "block";
-});
-if (repoConfig || document.getElementById("ghOwner").value) loadImageList();
+  const res = await fetch(`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents/images/products`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || `GitHub error ${res.status}`);
+  const files = data
+    .filter(i => i.type === "file" && /\.(jpe?g|png|webp|gif)$/i.test(i.name))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
-/* ---------- CONNECT TO SHEET (via Apps Script) ---------- */
-document.getElementById("connectBtn").addEventListener("click", async () => {
-  const url = document.getElementById("scriptUrl").value.trim();
-  const key = document.getElementById("adminKey").value.trim();
-  if (!url || !key) { setStatus("err", "Enter the Web App URL and your admin passphrase."); return; }
+  imgGrid.innerHTML = files.map(f => `
+    <button type="button" class="img-thumb" data-path="images/products/${f.name}" data-name="${f.name}">
+      <img src="${f.download_url}" alt="${f.name}" loading="lazy">
+    </button>`).join("") || `<p style="color:var(--gray); font-size:.85rem;">No photos found in images/products/ yet.</p>`;
+
+  imgGrid.querySelectorAll(".img-thumb").forEach(btn => {
+    btn.addEventListener("click", () => {
+      imgGrid.querySelectorAll(".img-thumb").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      selectedImage = btn.dataset.path;
+      selectedName.textContent = btn.dataset.name;
+    });
+  });
+  return files.length;
+}
+document.getElementById("refreshImages").addEventListener("click", async () => {
   try {
-    const res = await fetch(`${url}?action=catalog`);
-    if (!res.ok) throw new Error("Couldn't reach the Web App — check the URL and deployment access.");
-    await res.json();
-    scriptConfig = { url, key };
-    localStorage.setItem("cs_admin_script", JSON.stringify(scriptConfig));
-    setStatus("ok", "Connected to your product sheet.");
-    maybeEnable();
+    const n = await loadImageList();
+    setStatus("ok", `Photo list refreshed — ${n} found.`);
   } catch (err) {
-    setStatus("err", "Couldn't connect: " + err.message);
+    setStatus("err", "Couldn't load photos: " + err.message);
   }
 });
-document.getElementById("forgetLink").addEventListener("click", () => {
-  localStorage.removeItem("cs_admin_script");
-  localStorage.removeItem("cs_admin_gh_repo");
-  document.getElementById("scriptUrl").value = "";
-  document.getElementById("adminKey").value = "";
-  document.getElementById("ghOwner").value = "";
-  document.getElementById("ghRepo").value = "";
-  scriptConfig = null; repoConfig = null;
-  formArea.classList.remove("enabled");
-  setStatus("ok", "Saved connection cleared on this device.");
-});
+
+/* ---------- STARTUP ---------- */
+(async function init() {
+  if (typeof APPSCRIPT_URL === "undefined" || APPSCRIPT_URL.indexOf("PASTE_YOUR") === 0) {
+    setStatus("err", "js/config.js needs your Apps Script Web App URL — see apps-script/README-apps-script.md.");
+    return;
+  }
+  try {
+    const res = await fetch(`${APPSCRIPT_URL}?action=catalog`);
+    if (!res.ok) throw new Error("Couldn't reach the Apps Script Web App — check the URL in js/config.js.");
+    await res.json();
+    const n = await loadImageList();
+    setStatus("ok", `Ready — ${n} photo(s) found.`);
+    formArea.classList.add("enabled");
+  } catch (err) {
+    setStatus("err", err.message);
+  }
+})();
 
 /* ---------- POST HELPER (text/plain avoids CORS preflight) ---------- */
 async function postToScript(payload) {
-  const res = await fetch(scriptConfig.url, {
+  const res = await fetch(APPSCRIPT_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(payload)
@@ -305,13 +264,12 @@ async function postToScript(payload) {
 
 /* ---------- ADD CATEGORY ---------- */
 document.getElementById("addCategoryBtn").addEventListener("click", async () => {
-  if (!scriptConfig) { setStatus("err", "Connect your Product Sheet first."); return; }
   const name = document.getElementById("catName").value.trim();
   const icon = document.getElementById("catIcon").value.trim() || "🧩";
   if (!name) { setStatus("err", "Enter a category name."); return; }
 
   try {
-    const data = await postToScript({ action: "addCategory", key: scriptConfig.key, name, icon });
+    const data = await postToScript({ action: "addCategory", name, icon });
     CATEGORIES.push({ slug: data.slug, name, icon });
     refreshCategoryDropdown();
     catSelect.value = data.slug;
@@ -326,31 +284,29 @@ document.getElementById("addCategoryBtn").addEventListener("click", async () => 
 
 /* ---------- ADD PRODUCT ---------- */
 document.getElementById("submitBtn").addEventListener("click", async () => {
-  if (!scriptConfig) { setStatus("err", "Connect your Product Sheet first."); return; }
-
-  const image = imgSelect.value;
   const name = document.getElementById("pName").value.trim();
   const price = document.getElementById("pPrice").value.trim();
   const category = catSelect.value;
   const desc = document.getElementById("pDesc").value.trim();
   const featured = document.getElementById("pFeatured").checked;
 
-  if (!image || !name || !price || !desc) {
-    setStatus("err", "Select an image, and fill in name, price and description.");
+  if (!selectedImage || !name || !price || !desc) {
+    setStatus("err", "Select a photo, and fill in name, price and description.");
     return;
   }
 
   try {
     setStatus("ok", "Saving…");
-    const data = await postToScript({ action: "addProduct", key: scriptConfig.key, name, price: Number(price), category, image, desc, featured });
+    const data = await postToScript({ action: "addProduct", name, price: Number(price), category, image: selectedImage, desc, featured });
     setStatus("ok", `"${name}" saved — live on the site shortly.`);
     logSuccess(name, data.id);
 
     document.getElementById("pName").value = "";
     document.getElementById("pPrice").value = "";
     document.getElementById("pDesc").value = "";
-    imgSelect.value = "";
-    imgPreview.style.display = "none";
+    imgGrid.querySelectorAll(".img-thumb").forEach(b => b.classList.remove("selected"));
+    selectedImage = "";
+    selectedName.textContent = "No photo selected";
   } catch (err) {
     setStatus("err", "Failed: " + err.message);
   }

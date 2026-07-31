@@ -13,11 +13,10 @@ Product & category data lives in a **Google Sheet**, not in a code file — see
 `images/products/` in this repo (upload them there however you like, e.g. drag-and-drop on
 github.com — no token needed).
 
-Once set up:
+Once set up (one URL pasted into `js/config.js`, one time):
 1. Drop photos into `images/products/` whenever.
-2. Open `admin.html` (phone or PC) → Load Images (enter your GitHub username/repo, no token) →
-   Connect your Product Sheet (Web App URL + the passphrase you set) → fill in the product form
-   → Add Product. It's saved straight to the Sheet.
+2. Open `admin.html` (phone or PC) — it's ready immediately, no login. Tap the photo, fill in
+   the product form, Add Product. Saved straight to the Sheet.
 3. The live site reads from the Sheet automatically, with local caching so pages load instantly
    even while it refreshes in the background.
 
