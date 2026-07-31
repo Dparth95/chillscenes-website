@@ -141,11 +141,16 @@ function initReveal() {
   document.querySelectorAll(".reveal:not(.in)").forEach(el => io.observe(el));
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+function renderAll() {
   renderCategoryGrid();
   renderFeatured();
   renderShop();
   renderProductDetail();
-  initMobileMenu();
   initReveal();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  renderAll();
+  initMobileMenu();
 });
+document.addEventListener("catalog:updated", renderAll);
