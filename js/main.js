@@ -11,7 +11,7 @@ function productCard(p) {
         <h3><a href="product.html?id=${p.id}">${p.name}</a></h3>
         <div class="product-price">₹${p.price}</div>
         <div class="product-actions">
-          <button class="btn btn-outline" onclick="addToCart('${p.id}')">Add to Cart</button>
+          <button class="btn btn-outline" onclick="handleAddToCart(event, '${p.id}')">Add to Cart</button>
         </div>
       </div>
     </div>`;
@@ -110,7 +110,7 @@ function renderProductDetail() {
   let qty = 1;
   document.getElementById("qtyMinus").onclick = () => { qty = Math.max(1, qty - 1); document.getElementById("qtyVal").textContent = qty; };
   document.getElementById("qtyPlus").onclick = () => { qty += 1; document.getElementById("qtyVal").textContent = qty; };
-  document.getElementById("pdpAddCart").onclick = () => addToCart(p.id, qty);
+  document.getElementById("pdpAddCart").onclick = (e) => handleAddToCart(e, p.id, qty);
   document.getElementById("pdpBuyNow").onclick = () => buyNowWhatsApp(p.id);
 
   // related products
