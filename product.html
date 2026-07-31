@@ -63,7 +63,10 @@
 <aside class="cart-drawer" id="cartDrawer">
   <div class="cart-head">
     <h3>Your Cart</h3>
-    <button id="cartClose"><i class="fa-solid fa-xmark"></i></button>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <button id="clearCartBtn" class="cart-clear" title="Clear cart">Clear</button>
+      <button id="cartClose"><i class="fa-solid fa-xmark"></i></button>
+    </div>
   </div>
   <div class="cart-body" id="cartBody"></div>
   <div class="cart-footer" id="cartFooter">
