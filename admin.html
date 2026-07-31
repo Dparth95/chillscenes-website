@@ -69,6 +69,13 @@
   .panel h2 i{color:var(--orange); font-size:.95rem;}
   .section-label{font-size:.75rem; text-transform:uppercase; letter-spacing:.1em; color:var(--gray); margin:38px 0 16px;}
   .cat-list{margin-top:16px; border-top:1px solid var(--border); padding-top:12px;}
+  .emoji-grid{display:flex; flex-wrap:wrap; gap:8px;}
+  .emoji-grid button{
+    width:42px; height:42px; border-radius:10px; background:var(--ink2); border:1px solid var(--border);
+    font-size:1.25rem; display:flex; align-items:center; justify-content:center; transition:.15s;
+  }
+  .emoji-grid button:hover{border-color:rgba(255,122,41,.4);}
+  .emoji-grid button.selected{border-color:var(--orange); background:rgba(255,122,41,.14);}
   .cat-row{display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:.88rem;}
   .cat-row:last-child{border-bottom:none;}
   .cat-remove{background:none; border:none; color:var(--gray); padding:6px; font-size:.9rem;}
@@ -110,19 +117,16 @@
 
   <div class="panel">
     <h2><i class="fa-solid fa-tag"></i> New Category</h2>
-    <div class="row3">
-      <div class="field" style="margin-bottom:0;">
-        <label>Name</label>
-        <input type="text" id="catName" placeholder="e.g. Desk Lamps">
-      </div>
-      <div class="field" style="margin-bottom:0;">
-        <label>Icon (emoji)</label>
-        <input type="text" id="catIcon" placeholder="💡" maxlength="4">
-      </div>
-      <div class="field" style="margin-bottom:0; display:flex; align-items:flex-end;">
-        <button class="btn btn-outline btn-block" id="addCategoryBtn" type="button">Add Category</button>
-      </div>
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="catName" placeholder="e.g. Desk Lamps">
     </div>
+    <div class="field">
+      <label>Icon — tap to select</label>
+      <div class="emoji-grid" id="emojiGrid"></div>
+      <input type="text" id="catIcon" placeholder="or type/paste your own emoji" style="margin-top:10px;" maxlength="4">
+    </div>
+    <button class="btn btn-outline btn-block" id="addCategoryBtn" type="button">Add Category</button>
     <div class="cat-list" id="catList"></div>
   </div>
 
@@ -204,6 +208,26 @@ function refreshCategoryDropdown() {
   catSelect.innerHTML = CATEGORIES.map(c => `<option value="${c.slug}">${c.icon} ${c.name}</option>`).join("");
 }
 refreshCategoryDropdown();
+
+/* ---------- EMOJI PICKER ---------- */
+const EMOJI_OPTIONS = [
+  "🧲","🧴","🗂️","♟️","🔑","🎌","💡","🎨","🖼️","🕹️","🧸","🎁",
+  "🪑","🕯️","🌸","🐾","📱","🔧","🧩","🪴","🎯","🏺","🎮","📚",
+  "🖊️","🗝️","🧵","🪞","⌚","🎧","👜","🛍️","🍳","🧢","👑","💎"
+];
+const emojiGrid = document.getElementById("emojiGrid");
+const catIconInput = document.getElementById("catIcon");
+emojiGrid.innerHTML = EMOJI_OPTIONS.map(e => `<button type="button" data-emoji="${e}">${e}</button>`).join("");
+emojiGrid.querySelectorAll("button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    emojiGrid.querySelectorAll("button").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    catIconInput.value = btn.dataset.emoji;
+  });
+});
+catIconInput.addEventListener("input", () => {
+  emojiGrid.querySelectorAll("button").forEach(b => b.classList.toggle("selected", b.dataset.emoji === catIconInput.value.trim()));
+});
 
 function renderCategoryList() {
   const el = document.getElementById("catList");
@@ -372,6 +396,7 @@ document.getElementById("addCategoryBtn").addEventListener("click", async () => 
     logSuccess(`Category: ${name}`, data.slug);
     document.getElementById("catName").value = "";
     document.getElementById("catIcon").value = "";
+    emojiGrid.querySelectorAll("button").forEach(b => b.classList.remove("selected"));
   } catch (err) {
     setStatus("err", "Failed: " + err.message);
   }
