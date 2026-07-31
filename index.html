@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChillPrints | Custom 3D Printed Products</title>
+<title>ChillScenes3D | Custom 3D Printed Products</title>
 <meta name="description" content="Custom 3D printed fridge magnets, bathroom & office organisers, board games, keyrings and anime products.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -11,15 +11,16 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<div class="announce">🚚 Free delivery on all orders above ₹2000</div>
 
 <header>
   <nav>
-    <a href="index.html" class="logo">Chill<span>Prints</span></a>
+    <a href="index.html" class="logo">ChillScenes<span>3D</span></a>
     <ul class="menu">
       <li><a href="index.html" class="active">Home</a></li>
       <li><a href="shop.html">Shop</a></li>
       <li><a href="shop.html#categories">Categories</a></li>
-      <li><a href="index.html#contact">Contact</a></li>
+      <li><a href="index.html#contact" class="menu-custom">Custom Idea</a></li>
     </ul>
     <div class="nav-actions">
       <button class="icon-btn" id="cartToggle" aria-label="Cart">
@@ -36,12 +37,13 @@
   <a href="index.html">Home</a>
   <a href="shop.html">Shop</a>
   <a href="shop.html#categories">Categories</a>
-  <a href="index.html#contact">Contact</a>
+  <a href="index.html#contact">Custom Idea</a>
 </div>
 
 <section class="hero">
   <div class="hero-inner">
     <span class="eyebrow">Layer by layer, made to order</span>
+    <a href="#contact" class="hero-custom-note">✨ Have a custom idea? Chat with us →</a>
     <h1>Custom 3D prints for <em>everyday life.</em></h1>
     <p>Fridge magnets, organisers, board games, keyrings and anime collectibles — designed and printed in-house. Order in a tap, checkout on WhatsApp.</p>
     <div class="hero-actions">
@@ -85,7 +87,7 @@
     <span class="eyebrow reveal" style="color:var(--teal); font-family:'JetBrains Mono',monospace; letter-spacing:.12em; text-transform:uppercase; font-size:.8rem;">Get in touch</span>
     <h2 class="reveal" style="margin:14px 0 18px;">Have a custom idea?</h2>
     <p class="reveal" style="color:var(--gray); margin-bottom:32px;">Message us on WhatsApp with your idea, size and colour preference — we'll quote you directly.</p>
-    <a href="https://wa.me/919810704170?text=Hi%20ChillPrints%2C%20I%20have%20a%20custom%203D%20print%20idea." class="btn reveal" target="_blank">
+    <a href="https://wa.me/919810704170?text=Hi%20ChillScenes3D%2C%20I%20have%20a%20custom%203D%20print%20idea." class="btn reveal" target="_blank">
       <i class="fa-brands fa-whatsapp"></i>&nbsp; Chat on WhatsApp
     </a>
   </div>
@@ -95,7 +97,7 @@
   <div class="container">
     <div class="footer-grid">
       <div>
-        <div class="footer-logo">Chill<span>Prints</span></div>
+        <div class="footer-logo">ChillScenes<span>3D</span></div>
         <p>Custom 3D printed products — magnets, organisers, games, keyrings and anime collectibles.</p>
       </div>
       <div>
@@ -116,7 +118,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© 2026 ChillPrints. All rights reserved.</p>
+      <p>© 2026 ChillScenes3D. All rights reserved.</p>
       <p>Made in-house, one layer at a time.</p>
     </div>
   </div>
@@ -130,8 +132,15 @@
   </div>
   <div class="cart-body" id="cartBody"></div>
   <div class="cart-footer" id="cartFooter">
-    <div class="cart-total-row"><span>Total</span><span id="cartTotal">₹0</span></div>
-    <button class="btn btn-block" id="checkoutBtn"><i class="fa-brands fa-whatsapp"></i>&nbsp; Checkout on WhatsApp</button>
+    <div class="delivery-banner">🚚 Free delivery on orders above ₹2000</div>
+    <div class="pincode-row">
+      <label for="pincodeInput">Delivery Pincode</label>
+      <input type="text" id="pincodeInput" placeholder="Enter 6-digit pincode" inputmode="numeric" maxlength="6">
+    </div>
+    <div class="cart-total-row sub"><span>Subtotal</span><span id="cartSubtotal">₹0</span></div>
+    <div class="cart-total-row delivery"><span>Delivery</span><span id="cartDelivery">Enter pincode</span></div>
+    <div class="cart-total-row grand"><span>Total</span><span id="cartTotal">₹0</span></div>
+    <button class="btn btn-block" id="checkoutBtn">Checkout</button>
   </div>
 </aside>
 

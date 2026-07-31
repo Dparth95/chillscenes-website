@@ -1,4 +1,4 @@
-# ChillPrints — Site
+# ChillScenes3D — Site
 
 Static site, no build step. Cart uses `localStorage`; checkout opens WhatsApp
 (+91 98107 04170) with the order pre-filled.
@@ -8,7 +8,14 @@ Static site, no build step. Cart uses `localStorage`; checkout opens WhatsApp
 2. Open `js/products.js`, find the product, change `image: "images/products/placeholder.jpg"`
    to your file, e.g. `image: "images/products/magnet-city-skyline.jpg"`.
 
-## Add a new product
+## Add a new product — via form (recommended)
+Open `admin.html` in Chrome or Edge, click **Connect Site Folder** and select this
+folder, then fill in image/name/price/category/description and submit. It writes
+the image into `images/products/` and appends the entry to `products.js` for you.
+If double-clicking `admin.html` doesn't let you connect, run a local server:
+`python3 -m http.server` in this folder, then open `http://localhost:8000/admin.html`.
+
+## Add a new product — manually
 In `js/products.js`, copy a line inside `PRODUCTS` and edit:
 ```js
 { id: "unique-slug", name: "Product Name", price: 199, category: "fridge-magnets",

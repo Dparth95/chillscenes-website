@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Add Product | ChillScenes3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body{max-width:640px; margin:0 auto; padding:60px 24px 100px;}
+  .admin-head{margin-bottom:36px;}
+  .admin-head h1{font-size:1.8rem; margin-bottom:8px;}
+  .admin-head p{color:var(--gray); font-size:.92rem;}
+  .status-bar{
+    display:flex; align-items:center; gap:12px; padding:16px 18px; border-radius:12px;
+    background:var(--card); border:1px solid var(--border); margin-bottom:30px; font-size:.9rem;
+  }
+  .status-bar.ok{border-color:rgba(33,199,168,.4); color:var(--teal);}
+  .status-bar.err{border-color:rgba(255,90,90,.4); color:#ff8080;}
+  .field{margin-bottom:20px;}
+  .field label{display:block; font-size:.85rem; color:var(--gray); margin-bottom:8px;}
+  .field input[type=text], .field input[type=number], .field select, .field textarea{
+    width:100%; padding:13px 16px; border-radius:10px; background:var(--card);
+    border:1px solid var(--border); color:var(--cream); font-family:inherit; font-size:.95rem;
+  }
+  .field textarea{resize:vertical; min-height:80px;}
+  .field input[type=file]{
+    width:100%; padding:12px; border-radius:10px; background:var(--card);
+    border:1px dashed var(--border); color:var(--gray); font-size:.85rem;
+  }
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .checkbox-row{display:flex; align-items:center; gap:10px; margin-bottom:26px;}
+  .checkbox-row input{width:18px; height:18px;}
+  fieldset{border:none; padding:0; margin:0; opacity:.4; pointer-events:none; transition:.3s;}
+  fieldset.enabled{opacity:1; pointer-events:auto;}
+  .log{margin-top:30px; display:flex; flex-direction:column; gap:8px;}
+  .log-item{
+    font-size:.85rem; padding:10px 14px; border-radius:10px; background:var(--card);
+    border:1px solid var(--border); display:flex; justify-content:space-between; gap:10px;
+  }
+  .log-item.success{border-color:rgba(33,199,168,.35);}
+  .preview{width:44px; height:44px; border-radius:8px; object-fit:cover; margin-top:10px; border:1px solid var(--border);}
+  .helper{font-size:.78rem; color:var(--gray); margin-top:24px; line-height:1.7;}
+</style>
+</head>
+<body>
+
+<div class="admin-head">
+  <a href="index.html" style="color:var(--gray); font-size:.85rem;">← Back to site</a>
+  <h1 style="margin-top:14px;">Add a Product</h1>
+  <p>Local tool — connect your site folder, fill the form, submit. It writes the image and updates <code class="mono">products.js</code> directly. Works in Chrome or Edge.</p>
+</div>
+
+<div class="status-bar" id="statusBar">
+  <i class="fa-solid fa-folder"></i>
+  <span id="statusText">Not connected — click below to select your site folder.</span>
+</div>
+<button class="btn" id="connectBtn" style="margin-bottom:34px;">Connect Site Folder</button>
+
+<fieldset id="formArea">
+  <div class="field">
+    <label>Product Image</label>
+    <input type="file" id="imgFile" accept="image/*">
+    <img id="imgPreview" class="preview" style="display:none;">
+  </div>
+
+  <div class="field">
+    <label>Product Name</label>
+    <input type="text" id="pName" placeholder="e.g. City Skyline Magnet">
+  </div>
+
+  <div class="row2">
+    <div class="field">
+      <label>Price (₹)</label>
+      <input type="number" id="pPrice" placeholder="e.g. 199" min="0">
+    </div>
+    <div class="field">
+      <label>Category</label>
+      <select id="pCategory"></select>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Description</label>
+    <textarea id="pDesc" placeholder="Short description shown on the product page"></textarea>
+  </div>
+
+  <div class="checkbox-row">
+    <input type="checkbox" id="pFeatured" checked>
+    <label for="pFeatured" style="margin:0;">Show on homepage (Featured)</label>
+  </div>
+
+  <button class="btn btn-block" id="submitBtn">Add Product</button>
+</fieldset>
+
+<div class="log" id="log"></div>
+
+<p class="helper">
+  If "Connect Site Folder" doesn't work when opening this file directly (double-click), run a
+  local server instead: open a terminal in your site folder and run
+  <code class="mono">python3 -m http.server</code>, then visit
+  <code class="mono">http://localhost:8000/admin.html</code>.<br><br>
+  After adding products, remember to commit &amp; push the changed files
+  (<code class="mono">products.js</code> and the new image) to GitHub.
+</p>
+
+<script src="js/products.js"></script>
+<script>
+let rootHandle = null;
+
+const statusBar = document.getElementById("statusBar");
+const statusText = document.getElementById("statusText");
+const formArea = document.getElementById("formArea");
+const log = document.getElementById("log");
+const catSelect = document.getElementById("pCategory");
+
+catSelect.innerHTML = CATEGORIES.map(c => `<option value="${c.slug}">${c.name}</option>`).join("");
+
+document.getElementById("imgFile").addEventListener("change", e => {
+  const f = e.target.files[0];
+  const prev = document.getElementById("imgPreview");
+  if (f) { prev.src = URL.createObjectURL(f); prev.style.display = "block"; }
+});
+
+document.getElementById("connectBtn").addEventListener("click", async () => {
+  if (!window.showDirectoryPicker) {
+    setStatus("err", "Your browser doesn't support this. Use Chrome or Edge.");
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({ mode: "readwrite" });
+    await handle.getFileHandle("products.js"); // sanity check
+    rootHandle = handle;
+    setStatus("ok", `Connected to "${handle.name}" — ready to add products.`);
+    formArea.classList.add("enabled");
+  } catch (err) {
+    if (err.name === "NotFoundError") {
+      setStatus("err", "That folder doesn't contain products.js — select your site's root folder.");
+    } else if (err.name !== "AbortError") {
+      setStatus("err", "Couldn't connect: " + err.message);
+    }
+  }
+});
+
+function setStatus(type, msg) {
+  statusBar.className = "status-bar " + type;
+  statusText.textContent = msg;
+}
+function slugify(s) {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+function esc(s) {
+  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+document.getElementById("submitBtn").addEventListener("click", async () => {
+  if (!rootHandle) { setStatus("err", "Connect your site folder first."); return; }
+
+  const imgFile = document.getElementById("imgFile").files[0];
+  const name = document.getElementById("pName").value.trim();
+  const price = document.getElementById("pPrice").value.trim();
+  const category = catSelect.value;
+  const desc = document.getElementById("pDesc").value.trim();
+  const featured = document.getElementById("pFeatured").checked;
+
+  if (!imgFile || !name || !price || !desc) {
+    setStatus("err", "Fill in image, name, price and description.");
+    return;
+  }
+
+  try {
+    // 1. Read current products.js to check id uniqueness + find insertion point
+    const pjsHandle = await rootHandle.getFileHandle("products.js");
+    let text = await (await pjsHandle.getFile()).text();
+
+    let id = slugify(name);
+    const existingIds = [...text.matchAll(/id:\s*"([^"]+)"/g)].map(m => m[1]);
+    let suffix = 2;
+    let finalId = id;
+    while (existingIds.includes(finalId)) { finalId = `${id}-${suffix++}`; }
+
+    // 2. Write image into images/products/
+    const ext = imgFile.name.split(".").pop().toLowerCase();
+    const filename = `${finalId}.${ext}`;
+    const imagesDir = await rootHandle.getDirectoryHandle("images");
+    const productsDir = await imagesDir.getDirectoryHandle("products");
+    const fileHandle = await productsDir.getFileHandle(filename, { create: true });
+    const writableImg = await fileHandle.createWritable();
+    await writableImg.write(await imgFile.arrayBuffer());
+    await writableImg.close();
+
+    // 3. Insert new entry into PRODUCTS array in products.js
+    const entry = `  { id: "${finalId}", name: "${esc(name)}", price: ${Number(price)}, category: "${category}",\n    image: "images/products/${filename}", desc: "${esc(desc)}", featured: ${featured} },\n`;
+
+    const startIdx = text.indexOf("const PRODUCTS = [");
+    if (startIdx === -1) throw new Error("Couldn't find PRODUCTS array in products.js");
+    const closeIdx = text.indexOf("\n];", startIdx);
+    if (closeIdx === -1) throw new Error("Couldn't find end of PRODUCTS array");
+
+    text = text.slice(0, closeIdx) + "\n" + entry.trimEnd() + text.slice(closeIdx);
+
+    const writablePjs = await pjsHandle.createWritable();
+    await writablePjs.write(text);
+    await writablePjs.close();
+
+    setStatus("ok", `Added "${name}" — files updated. Commit & push when ready.`);
+    logSuccess(name, finalId);
+    document.getElementById("pName").value = "";
+    document.getElementById("pPrice").value = "";
+    document.getElementById("pDesc").value = "";
+    document.getElementById("imgFile").value = "";
+    document.getElementById("imgPreview").style.display = "none";
+  } catch (err) {
+    setStatus("err", "Failed: " + err.message);
+  }
+});
+
+function logSuccess(name, id) {
+  const item = document.createElement("div");
+  item.className = "log-item success";
+  item.innerHTML = `<span>✓ ${name}</span><span class="mono" style="color:var(--gray)">${id}</span>`;
+  log.prepend(item);
+}
+</script>
+</body>
+</html>
