@@ -15,13 +15,13 @@
   .admin-head p{color:var(--gray); font-size:.92rem;}
   .status-bar{
     display:flex; align-items:center; gap:12px; padding:16px 18px; border-radius:12px;
-    background:var(--card); border:1px solid var(--border); margin-bottom:30px; font-size:.9rem;
+    background:var(--card); border:1px solid var(--border); margin-bottom:24px; font-size:.9rem;
   }
   .status-bar.ok{border-color:rgba(33,199,168,.4); color:var(--teal);}
   .status-bar.err{border-color:rgba(255,90,90,.4); color:#ff8080;}
   .field{margin-bottom:20px;}
   .field label{display:block; font-size:.85rem; color:var(--gray); margin-bottom:8px;}
-  .field input[type=text], .field input[type=number], .field select, .field textarea{
+  .field input[type=text], .field input[type=password], .field input[type=number], .field select, .field textarea{
     width:100%; padding:13px 16px; border-radius:10px; background:var(--card);
     border:1px solid var(--border); color:var(--cream); font-family:inherit; font-size:.95rem;
   }
@@ -44,13 +44,14 @@
   .log-item.success{border-color:rgba(33,199,168,.35);}
   .preview{width:64px; height:64px; border-radius:8px; object-fit:cover; border:1px solid var(--border); background:var(--card);}
   .helper{font-size:.78rem; color:var(--gray); margin-top:24px; line-height:1.7;}
+  .helper a{color:var(--orange);}
   .img-picker-row{display:flex; align-items:center; gap:12px; margin-top:10px;}
   .refresh-btn{
     width:44px; height:44px; border-radius:10px; background:var(--card); border:1px solid var(--border);
     color:var(--gray); flex-shrink:0;
   }
   .refresh-btn:hover{color:var(--orange); border-color:var(--orange);}
-  .divider-text{font-size:.78rem; color:var(--gray); margin:14px 0; text-align:center; position:relative;}
+  .divider-text{font-size:.78rem; color:var(--gray); margin:14px 0; text-align:center;}
   .panel{
     background:var(--card); border:1px solid var(--border); border-radius:14px; padding:22px;
     margin-bottom:34px;
@@ -58,6 +59,9 @@
   .panel h2{font-size:1.05rem; margin-bottom:16px; display:flex; align-items:center; gap:8px;}
   .panel h2 i{color:var(--orange); font-size:.95rem;}
   .section-label{font-size:.75rem; text-transform:uppercase; letter-spacing:.1em; color:var(--gray); margin:38px 0 16px;}
+  .connect-panel{display:grid; gap:14px; margin-bottom:16px;}
+  .connect-actions{display:flex; gap:12px; align-items:center;}
+  .forget-link{font-size:.8rem; color:var(--gray); text-decoration:underline; cursor:pointer;}
 </style>
 </head>
 <body>
@@ -65,16 +69,42 @@
 <div class="admin-head">
   <a href="index.html" style="color:var(--gray); font-size:.85rem;">← Back to site</a>
   <h1 style="margin-top:14px;">Admin</h1>
-  <p>Local tool — connect your site folder, then add categories and products. Photos should already be
-  in <code class="mono">images/products/</code> (added via git); pick them from the dropdown below.
-  Works in Chrome or Edge.</p>
+  <p>Works from your phone or PC — connects straight to your GitHub repo, no local files needed.
+  Drop photos into <code class="mono">images/products/</code> via GitHub whenever, then come here
+  to pick them and fill in the details.</p>
 </div>
 
 <div class="status-bar" id="statusBar">
-  <i class="fa-solid fa-folder"></i>
-  <span id="statusText">Not connected — click below to select your site folder.</span>
+  <i class="fa-solid fa-plug"></i>
+  <span id="statusText">Not connected — enter your repo details below.</span>
 </div>
-<button class="btn" id="connectBtn" style="margin-bottom:34px;">Connect Site Folder</button>
+
+<div class="connect-panel">
+  <div class="row2">
+    <div class="field" style="margin-bottom:0;">
+      <label>GitHub username / org</label>
+      <input type="text" id="ghOwner" placeholder="e.g. yourusername">
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <label>Repository name</label>
+      <input type="text" id="ghRepo" placeholder="e.g. chillscenes3d-site">
+    </div>
+  </div>
+  <div class="row2">
+    <div class="field" style="margin-bottom:0;">
+      <label>Branch</label>
+      <input type="text" id="ghBranch" placeholder="main" value="main">
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <label>Personal Access Token</label>
+      <input type="password" id="ghToken" placeholder="ghp_...">
+    </div>
+  </div>
+  <div class="connect-actions">
+    <button class="btn" id="connectBtn">Connect</button>
+    <span class="forget-link" id="forgetLink">Forget saved connection</span>
+  </div>
+</div>
 
 <fieldset id="formArea">
 
@@ -144,18 +174,19 @@
 <div class="log" id="log"></div>
 
 <p class="helper">
-  If "Connect Site Folder" doesn't work when opening this file directly (double-click), run a
-  local server instead: open a terminal in your site folder and run
-  <code class="mono">python3 -m http.server</code>, then visit
-  <code class="mono">http://localhost:8000/admin.html</code>.<br><br>
-  After adding categories/products, remember to commit &amp; push the changed files
-  (<code class="mono">products.js</code> and any new images) to GitHub.
+  <strong>Getting a token (one-time setup):</strong> on GitHub go to
+  <a href="https://github.com/settings/tokens?type=beta" target="_blank">Settings → Developer settings → Personal access tokens → Fine-grained tokens</a>,
+  generate one, give it access to only this repository, and grant <strong>Contents: Read and write</strong>
+  permission. Paste that token above.<br><br>
+  The token is saved only in this browser's local storage on this device — it's never written into
+  the site files. Use "Forget saved connection" on a shared device. Every change here commits straight
+  to your repo, so your live site updates the next time GitHub Pages rebuilds (usually under a minute).
 </p>
 
 <script src="js/products.js"></script>
 <script>
-let rootHandle = null;
-let productsDirHandle = null;
+const GH_API = "https://api.github.com";
+let ghConfig = null;
 
 const statusBar = document.getElementById("statusBar");
 const statusText = document.getElementById("statusText");
@@ -187,53 +218,110 @@ function logSuccess(label, sub) {
   item.innerHTML = `<span>✓ ${label}</span><span class="mono" style="color:var(--gray)">${sub}</span>`;
   log.prepend(item);
 }
+function b64EncodeUnicode(str) { return btoa(unescape(encodeURIComponent(str))); }
+function b64DecodeUnicode(str) { return decodeURIComponent(escape(atob(str.replace(/\n/g, "")))); }
 
-/* ---------- CONNECT FOLDER ---------- */
-document.getElementById("connectBtn").addEventListener("click", async () => {
-  if (!window.showDirectoryPicker) {
-    setStatus("err", "Your browser doesn't support this. Use Chrome or Edge.");
-    return;
-  }
+/* ---------- GITHUB API HELPERS ---------- */
+function ghHeaders() {
+  return { "Authorization": `Bearer ${ghConfig.token}`, "Accept": "application/vnd.github+json" };
+}
+async function ghGet(path) {
+  const url = `${GH_API}/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${path}?ref=${encodeURIComponent(ghConfig.branch)}`;
+  const res = await fetch(url, { headers: ghHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || `GitHub error ${res.status}`);
+  return data;
+}
+async function ghPut(path, base64Content, message, sha) {
+  const url = `${GH_API}/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${path}`;
+  const body = { message, content: base64Content, branch: ghConfig.branch };
+  if (sha) body.sha = sha;
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: { ...ghHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || `GitHub error ${res.status}`);
+  return data;
+}
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------- CONNECT ---------- */
+const LS_KEY = "cs_admin_gh";
+function loadSavedConnection() {
   try {
-    const handle = await window.showDirectoryPicker({ mode: "readwrite" });
-    await handle.getFileHandle("products.js"); // sanity check
-    rootHandle = handle;
-    const imagesDir = await rootHandle.getDirectoryHandle("images");
-    productsDirHandle = await imagesDir.getDirectoryHandle("products");
+    const saved = JSON.parse(localStorage.getItem(LS_KEY));
+    if (saved) {
+      document.getElementById("ghOwner").value = saved.owner || "";
+      document.getElementById("ghRepo").value = saved.repo || "";
+      document.getElementById("ghBranch").value = saved.branch || "main";
+      document.getElementById("ghToken").value = saved.token || "";
+    }
+  } catch (e) {}
+}
+loadSavedConnection();
 
-    setStatus("ok", `Connected to "${handle.name}" — ready to go.`);
+document.getElementById("connectBtn").addEventListener("click", async () => {
+  const owner = document.getElementById("ghOwner").value.trim();
+  const repo = document.getElementById("ghRepo").value.trim();
+  const branch = document.getElementById("ghBranch").value.trim() || "main";
+  const token = document.getElementById("ghToken").value.trim();
+  if (!owner || !repo || !token) { setStatus("err", "Fill in username, repo and token."); return; }
+
+  ghConfig = { owner, repo, branch, token };
+  setStatus("ok", "Connecting…");
+  try {
+    await ghGet("products.js");
+    localStorage.setItem(LS_KEY, JSON.stringify(ghConfig));
+    setStatus("ok", `Connected to ${owner}/${repo} (${branch})`);
     formArea.classList.add("enabled");
     await loadImageList();
   } catch (err) {
-    if (err.name === "NotFoundError") {
-      setStatus("err", "That folder doesn't contain products.js / images/products/ — select your site's root folder.");
-    } else if (err.name !== "AbortError") {
-      setStatus("err", "Couldn't connect: " + err.message);
-    }
+    setStatus("err", "Couldn't connect: " + err.message);
   }
 });
 
-/* ---------- IMAGE PICKER (reads images/products/) ---------- */
+document.getElementById("forgetLink").addEventListener("click", () => {
+  localStorage.removeItem(LS_KEY);
+  document.getElementById("ghOwner").value = "";
+  document.getElementById("ghRepo").value = "";
+  document.getElementById("ghBranch").value = "main";
+  document.getElementById("ghToken").value = "";
+  ghConfig = null;
+  formArea.classList.remove("enabled");
+  setStatus("ok", "Saved connection cleared on this device.");
+});
+
+/* ---------- IMAGE PICKER ---------- */
 async function loadImageList() {
-  if (!productsDirHandle) return;
-  const names = [];
-  for await (const [name, handle] of productsDirHandle.entries()) {
-    if (handle.kind === "file" && /\.(jpe?g|png|webp|gif)$/i.test(name)) names.push(name);
+  try {
+    const items = await ghGet("images/products");
+    const files = (Array.isArray(items) ? items : [])
+      .filter(i => i.type === "file" && /\.(jpe?g|png|webp|gif)$/i.test(i.name))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    imgSelect.innerHTML = `<option value="">— Select photo from images/products/ —</option>` +
+      files.map(f => `<option value="${f.name}" data-url="${f.download_url}">${f.name}</option>`).join("");
+  } catch (err) {
+    setStatus("err", "Couldn't list images: " + err.message);
   }
-  names.sort();
-  imgSelect.innerHTML = `<option value="">— Select photo from images/products/ —</option>` +
-    names.map(n => `<option value="${n}">${n}</option>`).join("");
 }
 document.getElementById("refreshImages").addEventListener("click", async () => {
   await loadImageList();
   setStatus("ok", "Image list refreshed.");
 });
-imgSelect.addEventListener("change", async () => {
-  if (!imgSelect.value) { imgPreview.style.display = "none"; return; }
+imgSelect.addEventListener("change", () => {
+  const opt = imgSelect.selectedOptions[0];
+  if (!opt || !opt.value) { imgPreview.style.display = "none"; return; }
   imgFile.value = "";
-  const fh = await productsDirHandle.getFileHandle(imgSelect.value);
-  const file = await fh.getFile();
-  imgPreview.src = URL.createObjectURL(file);
+  imgPreview.src = opt.dataset.url;
   imgPreview.style.display = "block";
 });
 imgFile.addEventListener("change", () => {
@@ -247,14 +335,14 @@ imgFile.addEventListener("change", () => {
 
 /* ---------- ADD CATEGORY ---------- */
 document.getElementById("addCategoryBtn").addEventListener("click", async () => {
-  if (!rootHandle) { setStatus("err", "Connect your site folder first."); return; }
+  if (!ghConfig) { setStatus("err", "Connect first."); return; }
   const name = document.getElementById("catName").value.trim();
   const icon = document.getElementById("catIcon").value.trim() || "🧩";
   if (!name) { setStatus("err", "Enter a category name."); return; }
 
   try {
-    const pjsHandle = await rootHandle.getFileHandle("products.js");
-    let text = await (await pjsHandle.getFile()).text();
+    const file = await ghGet("products.js");
+    let text = b64DecodeUnicode(file.content);
 
     let slug = slugify(name);
     const existingSlugs = [...text.matchAll(/slug:\s*"([^"]+)"/g)].map(m => m[1]);
@@ -268,15 +356,13 @@ document.getElementById("addCategoryBtn").addEventListener("click", async () => 
     const entry = `  { slug: "${slug}", name: "${esc(name)}", icon: "${esc(icon)}" },\n`;
     text = text.slice(0, closeIdx) + "\n" + entry.trimEnd() + text.slice(closeIdx);
 
-    const writable = await pjsHandle.createWritable();
-    await writable.write(text);
-    await writable.close();
+    await ghPut("products.js", b64EncodeUnicode(text), `Add category: ${name}`, file.sha);
 
     CATEGORIES.push({ slug, name, icon });
     refreshCategoryDropdown();
     catSelect.value = slug;
 
-    setStatus("ok", `Category "${name}" added.`);
+    setStatus("ok", `Category "${name}" committed to GitHub.`);
     logSuccess(`Category: ${name}`, slug);
     document.getElementById("catName").value = "";
     document.getElementById("catIcon").value = "";
@@ -287,7 +373,7 @@ document.getElementById("addCategoryBtn").addEventListener("click", async () => 
 
 /* ---------- ADD PRODUCT ---------- */
 document.getElementById("submitBtn").addEventListener("click", async () => {
-  if (!rootHandle) { setStatus("err", "Connect your site folder first."); return; }
+  if (!ghConfig) { setStatus("err", "Connect first."); return; }
 
   const uploadedFile = imgFile.files[0];
   const existingImage = imgSelect.value;
@@ -303,8 +389,9 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
   }
 
   try {
-    const pjsHandle = await rootHandle.getFileHandle("products.js");
-    let text = await (await pjsHandle.getFile()).text();
+    setStatus("ok", "Saving…");
+    const file = await ghGet("products.js");
+    let text = b64DecodeUnicode(file.content);
 
     let id = slugify(name);
     const existingIds = [...text.matchAll(/id:\s*"([^"]+)"/g)].map(m => m[1]);
@@ -315,12 +402,10 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
     if (uploadedFile) {
       const ext = uploadedFile.name.split(".").pop().toLowerCase();
       filename = `${finalId}.${ext}`;
-      const fileHandle = await productsDirHandle.getFileHandle(filename, { create: true });
-      const writableImg = await fileHandle.createWritable();
-      await writableImg.write(await uploadedFile.arrayBuffer());
-      await writableImg.close();
+      const base64Img = await fileToBase64(uploadedFile);
+      await ghPut(`images/products/${filename}`, base64Img, `Add product image: ${filename}`);
     } else {
-      filename = existingImage; // already in images/products/
+      filename = existingImage;
     }
 
     const entry = `  { id: "${finalId}", name: "${esc(name)}", price: ${Number(price)}, category: "${category}",\n    image: "images/products/${filename}", desc: "${esc(desc)}", featured: ${featured} },\n`;
@@ -332,11 +417,9 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
 
     text = text.slice(0, closeIdx) + "\n" + entry.trimEnd() + text.slice(closeIdx);
 
-    const writablePjs = await pjsHandle.createWritable();
-    await writablePjs.write(text);
-    await writablePjs.close();
+    await ghPut("products.js", b64EncodeUnicode(text), `Add product: ${name}`, file.sha);
 
-    setStatus("ok", `Added "${name}" — files updated. Commit & push when ready.`);
+    setStatus("ok", `"${name}" committed to GitHub — live shortly.`);
     logSuccess(name, finalId);
 
     document.getElementById("pName").value = "";
@@ -345,7 +428,7 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
     imgFile.value = "";
     imgSelect.value = "";
     imgPreview.style.display = "none";
-    if (!uploadedFile) await loadImageList(); // keep list fresh either way
+    if (uploadedFile) await loadImageList();
   } catch (err) {
     setStatus("err", "Failed: " + err.message);
   }

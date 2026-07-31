@@ -13,16 +13,22 @@ Replace `images/logo.png` with your real logo (square works best, ~160×160px+, 
 transparent background). It shows next to the brand name in the header on every page.
 
 ## Add photos + products (recommended workflow)
-1. Add your photo files directly into `images/products/` (via git, however you normally push files).
-2. Open `admin.html` in Chrome or Edge, click **Connect Site Folder**, select this site folder.
-3. Use **New Category** at the top if you need a category that doesn't exist yet.
-4. In **Add Product**, pick the photo from the dropdown (it lists everything in `images/products/`),
-   fill in name/price/category/description, submit. It updates `products.js` for you — no manual editing.
-   (You can also upload a brand-new photo right from the form instead of picking an existing one.)
-5. `git add`, `commit`, `push`.
+Works from your phone or PC — no local files or git commands needed.
 
-If double-clicking `admin.html` doesn't let you connect, run a local server:
-`python3 -m http.server` in this folder, then open `http://localhost:8000/admin.html`.
+1. Add your photo files into `images/products/` in your GitHub repo, whenever, however you like
+   (drag-and-drop upload on github.com, or however you normally push).
+2. One-time setup: on GitHub go to **Settings → Developer settings → Personal access tokens →
+   Fine-grained tokens**, generate a token scoped to just this repository with **Contents: Read
+   and write** permission.
+3. Open `admin.html` (works in any mobile or desktop browser), enter your GitHub username, repo
+   name, branch (usually `main`), and the token, then **Connect**. It's remembered on that device.
+4. Use **New Category** if needed, then **Add Product**: pick the photo from the dropdown (lists
+   everything in `images/products/`), fill in name/price/category/description, submit.
+   It commits the change straight to GitHub — no manual editing, no push needed.
+5. GitHub Pages rebuilds automatically, usually live within a minute.
+
+The token stays only in that browser's local storage on that device — never written into any
+site file. Use "Forget saved connection" on a shared device.
 
 ## Add a new product — manually
 In `js/products.js`, copy a line inside `PRODUCTS` and edit:
