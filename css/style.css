@@ -198,6 +198,8 @@ nav{
 .cart-head{display:flex; justify-content:space-between; align-items:center; padding:22px 24px; border-bottom:1px solid var(--border);}
 .cart-head h3{font-size:1.2rem;}
 .cart-head button{background:none; border:none; color:var(--cream); font-size:1.2rem;}
+.cart-clear{font-size:.8rem !important; color:var(--gray) !important; text-decoration:underline;}
+.cart-clear:hover{color:#ff8080 !important;}
 .cart-body{flex:1; overflow-y:auto; padding:20px 24px; display:flex; flex-direction:column; gap:18px;}
 .cart-empty{color:var(--gray); text-align:center; padding:60px 0;}
 .cart-empty a{color:var(--orange);}
