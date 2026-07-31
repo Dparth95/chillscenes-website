@@ -47,7 +47,8 @@ nav{
   max-width:1200px; margin:0 auto; padding:18px 6%;
   display:flex; align-items:center; justify-content:space-between;
 }
-.logo{font-family:'Space Grotesk',sans-serif; font-size:1.5rem; font-weight:700; display:flex; align-items:center; gap:8px;}
+.logo{font-family:'Space Grotesk',sans-serif; font-size:1.5rem; font-weight:700; display:flex; align-items:center; gap:10px;}
+.logo img{height:38px; width:38px; object-fit:contain; border-radius:8px;}
 .logo span{color:var(--orange);}
 .menu{display:flex; gap:32px;}
 .menu a{font-size:.92rem; color:var(--gray); transition:.25s;}
