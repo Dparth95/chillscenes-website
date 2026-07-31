@@ -5,18 +5,10 @@
    ============================================================ */
 const WHATSAPP_NUMBER = "919810704170"; // country code 91 + number
 const FREE_DELIVERY_THRESHOLD = 2000;
-const DEFAULT_DELIVERY = 79;
+const DEFAULT_DELIVERY = 79; // fallback if a state has no rate set yet
 
-/* State-wise courier charges — EDIT THESE with your real rates */
-const DELIVERY_RATES = {
-  "Delhi": 79, "Haryana": 79, "Uttarakhand": 89,
-  "Punjab": 89, "Uttar Pradesh": 89, "Rajasthan": 89,
-  "Gujarat": 99, "Maharashtra": 99, "Madhya Pradesh": 99, "Chhattisgarh": 99,
-  "Telangana": 99, "Andhra Pradesh": 109, "Karnataka": 99, "Tamil Nadu": 109, "Kerala": 119,
-  "West Bengal": 109, "Odisha": 119, "Bihar": 109, "Jharkhand": 109,
-  "Himachal Pradesh": 129, "Jammu and Kashmir": 149,
-  "Assam": 159, "North East": 169
-};
+/* DELIVERY_RATES is now loaded live from your Google Sheet (via products.js) —
+   set/edit rates in admin.html's "Delivery Prices by State" panel. */
 
 /* Approximate PIN prefix (first 2 digits) → state, for delivery estimate.
    Refine any entries below if you find a mismatch. */
@@ -272,3 +264,4 @@ document.addEventListener("DOMContentLoaded", () => {
     renderCartDrawer();
   });
 });
+document.addEventListener("catalog:updated", renderCartDrawer);

@@ -4,30 +4,27 @@
    so the site paints instantly, then refreshes in the background.
    ============================================================ */
 
-/* Fallback categories shown even before the Sheet has any —
-   real categories from the Sheet are merged in on top of these. */
-const DEFAULT_CATEGORIES = [
-  { slug: "fridge-magnets",       name: "Fridge Magnets",         icon: "🧲" },
-  { slug: "bathroom-organisers",  name: "Bathroom Organisers",    icon: "🧴" },
-  { slug: "office-organisers",    name: "Office Table Organisers",icon: "🗂️" },
-  { slug: "board-games",          name: "Board Games",            icon: "♟️" },
-  { slug: "keyrings",             name: "Key Rings",               icon: "🔑" },
-  { slug: "anime",                name: "Anime Products",          icon: "🎌" },
-];
-
-let CATEGORIES = [...DEFAULT_CATEGORIES];
+let CATEGORIES = [];
 let PRODUCTS = [];
+let DELIVERY_RATES = {};
+
+/* All states/zones delivery pricing can be set for — used by
+   admin.html's Delivery Prices panel and cart.js's pincode lookup. */
+const ALL_STATES = [
+  "Delhi", "Haryana", "Punjab", "Himachal Pradesh", "Jammu and Kashmir",
+  "Uttar Pradesh", "Uttarakhand", "Rajasthan", "Gujarat", "Maharashtra",
+  "Madhya Pradesh", "Chhattisgarh", "Telangana", "Andhra Pradesh", "Karnataka",
+  "Tamil Nadu", "Kerala", "West Bengal", "Odisha", "Bihar", "Jharkhand",
+  "Assam", "North East"
+];
 
 const CATALOG_CACHE_KEY = "cs_catalog_cache";
 
 function applyCatalog(data) {
-  const fetchedCats = data.categories || [];
-  const merged = [...DEFAULT_CATEGORIES];
-  fetchedCats.forEach(c => {
-    if (!merged.find(m => m.slug === c.slug)) merged.push(c);
-  });
-  CATEGORIES.length = 0; CATEGORIES.push(...merged);
+  CATEGORIES.length = 0; CATEGORIES.push(...(data.categories || []));
   PRODUCTS.length = 0; PRODUCTS.push(...(data.products || []));
+  DELIVERY_RATES = {};
+  (data.deliveryRates || []).forEach(r => { DELIVERY_RATES[r.state] = r.price; });
 }
 
 // 1. Instant paint from cache (synchronous, runs before DOMContentLoaded)
@@ -40,7 +37,7 @@ function applyCatalog(data) {
 
 // 2. Background refresh from the live Sheet
 async function refreshCatalog() {
-  if (!APPSCRIPT_URL || APPSCRIPT_URL.indexOf("PASTE_YOUR") === 0) return;
+  if (typeof APPSCRIPT_URL === "undefined" || APPSCRIPT_URL.indexOf("PASTE_YOUR") === 0) return;
   try {
     const res = await fetch(`${APPSCRIPT_URL}?action=catalog`);
     const data = await res.json();
