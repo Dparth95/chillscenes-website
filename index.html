@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChillPrints | Custom 3D Printed Products</title>
+<meta name="description" content="Custom 3D printed fridge magnets, bathroom & office organisers, board games, keyrings and anime products.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <nav>
+    <a href="index.html" class="logo">Chill<span>Prints</span></a>
+    <ul class="menu">
+      <li><a href="index.html" class="active">Home</a></li>
+      <li><a href="shop.html">Shop</a></li>
+      <li><a href="shop.html#categories">Categories</a></li>
+      <li><a href="index.html#contact">Contact</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="icon-btn" id="cartToggle" aria-label="Cart">
+        <i class="fa-solid fa-bag-shopping"></i>
+        <span class="cart-count">0</span>
+      </button>
+      <button class="menuBtn" id="menuBtn"><i class="fa-solid fa-bars"></i></button>
+    </div>
+  </nav>
+</header>
+
+<div class="menuOverlay" id="menuOverlay"></div>
+<div class="mobileMenu" id="mobileMenu">
+  <a href="index.html">Home</a>
+  <a href="shop.html">Shop</a>
+  <a href="shop.html#categories">Categories</a>
+  <a href="index.html#contact">Contact</a>
+</div>
+
+<section class="hero">
+  <div class="hero-inner">
+    <span class="eyebrow">Layer by layer, made to order</span>
+    <h1>Custom 3D prints for <em>everyday life.</em></h1>
+    <p>Fridge magnets, organisers, board games, keyrings and anime collectibles — designed and printed in-house. Order in a tap, checkout on WhatsApp.</p>
+    <div class="hero-actions">
+      <a href="shop.html" class="btn">Browse Shop</a>
+      <a href="#categories" class="btn btn-outline">View Categories</a>
+    </div>
+    <div class="layer-strip">
+      <div></div><div></div><div></div><div></div><div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="categories">
+  <div class="container">
+    <div class="section-head reveal">
+      <div>
+        <span class="eyebrow">What we make</span>
+        <h2>Shop by Category</h2>
+      </div>
+      <p>Six lines, one workshop — everything printed and finished by hand.</p>
+    </div>
+    <div class="cat-grid" id="categoryGrid"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head reveal">
+      <div>
+        <span class="eyebrow">Handpicked</span>
+        <h2>Featured Products</h2>
+      </div>
+      <a href="shop.html" class="btn btn-outline btn-sm">View All →</a>
+    </div>
+    <div class="product-grid" id="featuredGrid"></div>
+  </div>
+</section>
+
+<section class="section" id="contact">
+  <div class="container" style="text-align:center; max-width:640px;">
+    <span class="eyebrow reveal" style="color:var(--teal); font-family:'JetBrains Mono',monospace; letter-spacing:.12em; text-transform:uppercase; font-size:.8rem;">Get in touch</span>
+    <h2 class="reveal" style="margin:14px 0 18px;">Have a custom idea?</h2>
+    <p class="reveal" style="color:var(--gray); margin-bottom:32px;">Message us on WhatsApp with your idea, size and colour preference — we'll quote you directly.</p>
+    <a href="https://wa.me/919810704170?text=Hi%20ChillPrints%2C%20I%20have%20a%20custom%203D%20print%20idea." class="btn reveal" target="_blank">
+      <i class="fa-brands fa-whatsapp"></i>&nbsp; Chat on WhatsApp
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-logo">Chill<span>Prints</span></div>
+        <p>Custom 3D printed products — magnets, organisers, games, keyrings and anime collectibles.</p>
+      </div>
+      <div>
+        <div class="footer-title">Shop</div>
+        <div class="footer-links">
+          <a href="shop.html?category=fridge-magnets">Fridge Magnets</a>
+          <a href="shop.html?category=bathroom-organisers">Bathroom Organisers</a>
+          <a href="shop.html?category=office-organisers">Office Organisers</a>
+          <a href="shop.html?category=board-games">Board Games</a>
+        </div>
+      </div>
+      <div>
+        <div class="footer-title">Contact</div>
+        <div class="footer-links">
+          <a href="https://wa.me/919810704170" target="_blank">WhatsApp: +91 98107 04170</a>
+          <a href="index.html#contact">Custom Orders</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 ChillPrints. All rights reserved.</p>
+      <p>Made in-house, one layer at a time.</p>
+    </div>
+  </div>
+</footer>
+
+<div class="cart-overlay" id="cartOverlay"></div>
+<aside class="cart-drawer" id="cartDrawer">
+  <div class="cart-head">
+    <h3>Your Cart</h3>
+    <button id="cartClose"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="cart-body" id="cartBody"></div>
+  <div class="cart-footer" id="cartFooter">
+    <div class="cart-total-row"><span>Total</span><span id="cartTotal">₹0</span></div>
+    <button class="btn btn-block" id="checkoutBtn"><i class="fa-brands fa-whatsapp"></i>&nbsp; Checkout on WhatsApp</button>
+  </div>
+</aside>
+
+<script src="js/products.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
