@@ -148,7 +148,7 @@
     <div class="img-grid" id="imgGrid"></div>
     <div class="selected-name" id="selectedName">No photo selected</div>
     <div class="refresh-row">
-      <span></span>
+      <a href="#" id="folderLink" target="_blank" style="font-size:.8rem; color:var(--orange); text-decoration:underline;">Open Photos Folder →</a>
       <button type="button" class="refresh-btn" id="refreshImages" title="Refresh photo list">
         <i class="fa-solid fa-rotate"></i>
       </button>
@@ -188,8 +188,9 @@
 
 <p class="helper">
   Only one thing to set up: <code class="mono">js/config.js</code> needs your Apps Script Web App
-  URL (see <code class="mono">apps-script/README-apps-script.md</code>). Photos are read straight
-  from <code class="mono">images/products/</code> in this repo — nothing to configure for that.
+  URL (see <code class="mono">apps-script/README-apps-script.md</code>). Photos come from a Google
+  Drive folder ("ChillScenes3D Photos") that's auto-created the first time this page loads —
+  use the "Open Photos Folder" link above to add photos from your phone or PC.
 </p>
 
 <script src="js/config.js"></script>
@@ -299,34 +300,21 @@ function logSuccess(label, sub) {
   log.prepend(item);
 }
 
-/* ---------- AUTO-DETECT REPO FROM THIS PAGE'S OWN URL ---------- */
-function detectRepo() {
-  const host = location.hostname;
-  if (!host.endsWith(".github.io")) return null;
-  const owner = host.split(".")[0];
-  const parts = location.pathname.split("/").filter(Boolean);
-  const repo = parts.length > 0 ? parts[0] : (owner + ".github.io");
-  return { owner, repo };
-}
-
-/* ---------- IMAGES (public GitHub read, no token) ---------- */
+/* ---------- IMAGES (from your Drive photos folder, via Apps Script) ---------- */
+let photosFolderUrl = "";
 async function loadImageList() {
-  const repoInfo = detectRepo();
-  if (!repoInfo) {
-    imgGrid.innerHTML = `<p style="color:var(--gray); font-size:.85rem;">Open this page via your github.io site to browse photos.</p>`;
-    return 0;
-  }
-  const res = await fetch(`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents/images/products`);
+  const res = await fetch(`${APPSCRIPT_URL}?action=images`);
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || `GitHub error ${res.status}`);
-  const files = data
-    .filter(i => i.type === "file" && /\.(jpe?g|png|webp|gif)$/i.test(i.name))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  if (data.error) throw new Error(data.error);
+  photosFolderUrl = data.folderUrl || "";
+  const folderLinkEl = document.getElementById("folderLink");
+  if (folderLinkEl && photosFolderUrl) folderLinkEl.href = photosFolderUrl;
 
+  const files = data.images || [];
   imgGrid.innerHTML = files.map(f => `
-    <button type="button" class="img-thumb" data-path="images/products/${f.name}" data-name="${f.name}">
-      <img src="${f.download_url}" alt="${f.name}" loading="lazy">
-    </button>`).join("") || `<p style="color:var(--gray); font-size:.85rem;">No photos found in images/products/ yet.</p>`;
+    <button type="button" class="img-thumb" data-path="${f.url}" data-name="${f.name}">
+      <img src="${f.url}" alt="${f.name}" loading="lazy">
+    </button>`).join("") || `<p style="color:var(--gray); font-size:.85rem;">No photos in your Photos folder yet — add some via the link below.</p>`;
 
   imgGrid.querySelectorAll(".img-thumb").forEach(btn => {
     btn.addEventListener("click", () => {
