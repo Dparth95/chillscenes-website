@@ -7,6 +7,7 @@
 let CATEGORIES = [];
 let PRODUCTS = [];
 let DELIVERY_RATES = {};
+const DEFAULT_DELIVERY = 79; // fallback if a state has no rate set yet
 
 /* All states/zones delivery pricing can be set for — used by
    admin.html's Delivery Prices panel and cart.js's pincode lookup. */

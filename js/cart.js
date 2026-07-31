@@ -5,10 +5,7 @@
    ============================================================ */
 const WHATSAPP_NUMBER = "919810704170"; // country code 91 + number
 const FREE_DELIVERY_THRESHOLD = 2000;
-const DEFAULT_DELIVERY = 79; // fallback if a state has no rate set yet
-
-/* DELIVERY_RATES is now loaded live from your Google Sheet (via products.js) —
-   set/edit rates in admin.html's "Delivery Prices by State" panel. */
+/* DEFAULT_DELIVERY now lives in products.js so admin.html can also see it */
 
 /* Approximate PIN prefix (first 2 digits) → state, for delivery estimate.
    Refine any entries below if you find a mismatch. */
