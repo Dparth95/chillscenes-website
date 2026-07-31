@@ -47,6 +47,20 @@ function writeCart(cart) {
   localStorage.setItem("cs_cart", JSON.stringify(cart));
   updateCartCount();
 }
+function pruneCart() {
+  if (!PRODUCTS.length) return; // catalog not loaded yet — don't wipe a valid cart
+  const cart = readCart();
+  let changed = false;
+  Object.keys(cart).forEach(id => {
+    if (!getProduct(id)) { delete cart[id]; changed = true; }
+  });
+  if (changed) writeCart(cart);
+}
+function clearCart() {
+  localStorage.removeItem("cs_cart");
+  updateCartCount();
+  renderCartDrawer();
+}
 function addToCart(id, qty = 1, sourceImgEl = null) {
   const cart = readCart();
   cart[id] = (cart[id] || 0) + qty;
@@ -254,6 +268,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("cartClose")?.addEventListener("click", closeCart);
   document.getElementById("cartOverlay")?.addEventListener("click", closeCart);
   document.getElementById("checkoutBtn")?.addEventListener("click", checkoutWhatsApp);
+  document.getElementById("clearCartBtn")?.addEventListener("click", () => {
+    if (cartCount() === 0) return;
+    if (confirm("Clear all items from your cart?")) clearCart();
+  });
   document.getElementById("pincodeInput")?.addEventListener("input", e => {
     const val = e.target.value.replace(/\D/g, "").slice(0, 6);
     e.target.value = val;
@@ -261,4 +279,4 @@ document.addEventListener("DOMContentLoaded", () => {
     renderCartDrawer();
   });
 });
-document.addEventListener("catalog:updated", renderCartDrawer);
+document.addEventListener("catalog:updated", () => { pruneCart(); renderCartDrawer(); });
