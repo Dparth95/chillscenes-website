@@ -68,6 +68,29 @@
   .panel h2{font-size:1.05rem; margin-bottom:16px; display:flex; align-items:center; gap:8px;}
   .panel h2 i{color:var(--orange); font-size:.95rem;}
   .section-label{font-size:.75rem; text-transform:uppercase; letter-spacing:.1em; color:var(--gray); margin:38px 0 16px;}
+  .cat-list{margin-top:16px; border-top:1px solid var(--border); padding-top:12px;}
+  .cat-row{display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:.88rem;}
+  .cat-row:last-child{border-bottom:none;}
+  .cat-remove{background:none; border:none; color:var(--gray); padding:6px; font-size:.9rem;}
+  .cat-remove:hover{color:#ff8080;}
+  details.panel{padding:0; overflow:hidden;}
+  details.panel summary{
+    cursor:pointer; padding:22px; font-size:1.05rem; font-weight:600; list-style:none;
+    display:flex; align-items:center; gap:8px; color:var(--cream);
+  }
+  details.panel summary::-webkit-details-marker{display:none;}
+  details.panel summary i.chev{color:var(--orange); font-size:.8rem; transition:.2s; margin-left:auto;}
+  details.panel[open] summary i.chev{transform:rotate(180deg);}
+  details.panel summary i.icon{color:var(--orange); font-size:.95rem;}
+  .details-body{padding:0 22px 22px;}
+  .delivery-row{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border);}
+  .delivery-row:last-child{border-bottom:none;}
+  .delivery-state{flex:1; font-size:.87rem;}
+  .delivery-row input{
+    width:90px; padding:8px 10px; border-radius:8px; background:var(--ink2);
+    border:1px solid var(--border); color:var(--cream); font-family:'JetBrains Mono',monospace; font-size:.85rem;
+  }
+  .delivery-row button{padding:8px 14px; font-size:.78rem;}
 </style>
 </head>
 <body>
@@ -100,7 +123,19 @@
         <button class="btn btn-outline btn-block" id="addCategoryBtn" type="button">Add Category</button>
       </div>
     </div>
+    <div class="cat-list" id="catList"></div>
   </div>
+
+  <details class="panel">
+    <summary><i class="fa-solid fa-truck icon"></i> Delivery Prices by State <i class="fa-solid fa-chevron-down chev"></i></summary>
+    <div class="details-body">
+      <p style="color:var(--gray); font-size:.82rem; margin-bottom:14px;">
+        Set the courier price for each state. A pincode the customer enters gets matched to its
+        state automatically at checkout. Leave a state blank to use the default (₹79).
+      </p>
+      <div id="deliveryList"></div>
+    </div>
+  </details>
 
   <div class="section-label">Add Product</div>
 
@@ -169,6 +204,62 @@ function refreshCategoryDropdown() {
   catSelect.innerHTML = CATEGORIES.map(c => `<option value="${c.slug}">${c.icon} ${c.name}</option>`).join("");
 }
 refreshCategoryDropdown();
+
+function renderCategoryList() {
+  const el = document.getElementById("catList");
+  el.innerHTML = CATEGORIES.map(c => `
+    <div class="cat-row">
+      <span>${c.icon} ${c.name}</span>
+      <button type="button" class="cat-remove" data-slug="${c.slug}" title="Remove category">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>`).join("");
+  el.querySelectorAll(".cat-remove").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const slug = btn.dataset.slug;
+      if (!confirm(`Remove category "${slug}"? Any products already using it will keep this value but it won't appear as a filter.`)) return;
+      try {
+        await postToScript({ action: "removeCategory", slug });
+        const idx = CATEGORIES.findIndex(c => c.slug === slug);
+        if (idx > -1) CATEGORIES.splice(idx, 1);
+        refreshCategoryDropdown();
+        renderCategoryList();
+        setStatus("ok", "Category removed.");
+      } catch (err) {
+        setStatus("err", "Failed: " + err.message);
+      }
+    });
+  });
+}
+
+function renderDeliveryList() {
+  const el = document.getElementById("deliveryList");
+  el.innerHTML = ALL_STATES.map(state => {
+    const val = DELIVERY_RATES[state] !== undefined ? DELIVERY_RATES[state] : "";
+    const inputId = "dr-" + state.replace(/\s+/g, "-");
+    return `
+      <div class="delivery-row">
+        <span class="delivery-state">${state}</span>
+        <input type="number" min="0" placeholder="₹${DEFAULT_DELIVERY}" value="${val}" id="${inputId}">
+        <button type="button" class="btn btn-outline btn-sm" data-state="${state}" data-input="${inputId}">Save</button>
+      </div>`;
+  }).join("");
+  el.querySelectorAll("button[data-state]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const state = btn.dataset.state;
+      const input = document.getElementById(btn.dataset.input);
+      const price = input.value.trim();
+      if (!price) { setStatus("err", `Enter a price for ${state}.`); return; }
+      try {
+        await postToScript({ action: "setDeliveryRate", state, price: Number(price) });
+        DELIVERY_RATES[state] = Number(price);
+        setStatus("ok", `Delivery price for ${state} saved: ₹${price}.`);
+      } catch (err) {
+        setStatus("err", "Failed: " + err.message);
+      }
+    });
+  });
+}
 
 function setStatus(type, msg) {
   statusBar.className = "status-bar " + type;
@@ -242,6 +333,9 @@ document.getElementById("refreshImages").addEventListener("click", async () => {
     const res = await fetch(`${APPSCRIPT_URL}?action=catalog`);
     if (!res.ok) throw new Error("Couldn't reach the Apps Script Web App — check the URL in js/config.js.");
     await res.json();
+    refreshCategoryDropdown();
+    renderCategoryList();
+    renderDeliveryList();
     const n = await loadImageList();
     setStatus("ok", `Ready — ${n} photo(s) found.`);
     formArea.classList.add("enabled");
@@ -272,6 +366,7 @@ document.getElementById("addCategoryBtn").addEventListener("click", async () => 
     const data = await postToScript({ action: "addCategory", name, icon });
     CATEGORIES.push({ slug: data.slug, name, icon });
     refreshCategoryDropdown();
+    renderCategoryList();
     catSelect.value = data.slug;
     setStatus("ok", `Category "${name}" added.`);
     logSuccess(`Category: ${name}`, data.slug);
