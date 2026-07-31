@@ -222,7 +222,7 @@ function buildWhatsAppMessage() {
   lines.push("", `Subtotal: ₹${subtotal}`);
 
   if (subtotal >= FREE_DELIVERY_THRESHOLD) {
-    lines.push("Delivery: FREE (order above ₹2000)");
+    lines.push("Delivery: FREE");
     lines.push(`Total: ₹${subtotal}`);
   } else {
     const charge = getDeliveryCharge(pin, subtotal);
@@ -245,7 +245,7 @@ function checkoutWhatsApp() {
 function buyNowWhatsApp(id) {
   const p = getProduct(id);
   if (!p) return;
-  const note = p.price >= FREE_DELIVERY_THRESHOLD ? "Delivery: FREE" : "Delivery charges apply (free above ₹2000)";
+  const note = p.price >= FREE_DELIVERY_THRESHOLD ? "Delivery: FREE" : "Delivery charges apply";
   const msg = encodeURIComponent(
     `Hi ChillScenes3D! I'd like to order:\n\n• ${p.name} x1 — ₹${p.price}\n\n${note}\n\nPlease confirm availability & delivery.`
   );
