@@ -217,7 +217,7 @@ function buildWhatsAppMessage() {
   const lines = ["Hi ChillScenes3D! I'd like to order:", ""];
   Object.entries(cart).forEach(([id, qty]) => {
     const p = getProduct(id);
-    if (p) lines.push(`• ${p.name} x${qty} — ₹${p.price * qty}`);
+    if (p) lines.push(`• ${p.name} x${qty} — ₹${p.price * qty}`, `  ${location.origin}/product.html?id=${p.id}`);
   });
   lines.push("", `Subtotal: ₹${subtotal}`);
 
@@ -247,7 +247,7 @@ function buyNowWhatsApp(id) {
   if (!p) return;
   const note = p.price >= FREE_DELIVERY_THRESHOLD ? "Delivery: FREE" : "Delivery charges apply";
   const msg = encodeURIComponent(
-    `Hi ChillScenes3D! I'd like to order:\n\n• ${p.name} x1 — ₹${p.price}\n\n${note}\n\nPlease confirm availability & delivery.`
+    `Hi ChillScenes3D! I'd like to order:\n\n• ${p.name} x1 — ₹${p.price}\n  ${location.origin}/product.html?id=${p.id}\n\n${note}\n\nPlease confirm availability & delivery.`
   );
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
 }
