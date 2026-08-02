@@ -1,187 +1,163 @@
-/* ---------- PRODUCT CARD TEMPLATE ---------- */
-function productCard(p) {
-  const catLabel = p.categories.map(slug => getCategory(slug)?.name).filter(Boolean).join(" • ");
-  return `
-    <div class="product-card reveal">
-      <a href="product.html?id=${p.id}" class="product-thumb">
-        <img src="${p.image}" alt="${p.name}" loading="lazy">
-        <div class="layers"><div></div><div></div><div></div></div>
-      </a>
-      <div class="product-body">
-        <span class="product-cat">${catLabel}</span>
-        <h3><a href="product.html?id=${p.id}">${p.name}</a></h3>
-        <div class="product-price">₹${p.price}</div>
-        <div class="product-actions">
-          <button class="btn btn-outline" onclick="handleAddToCart(event, '${p.id}')">Add to Cart</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChillScenes3D | Custom 3D Printed Products</title>
+<meta name="description" content="Custom 3D printed fridge magnets, bathroom & office organisers, board games, keyrings and anime products.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="announce">🚚 Free delivery on all orders above ₹2000</div>
+
+<header>
+  <nav>
+    <a href="index.html" class="logo"><img src="images/logo.png" alt="ChillScenes3D logo">ChillScenes<span>3D</span></a>
+    <ul class="menu">
+      <li><a href="index.html" class="active">Home</a></li>
+      <li><a href="shop.html">Shop</a></li>
+      <li><a href="index.html#categories">Categories</a></li>
+      <li><a href="index.html#contact" class="menu-custom">Custom Idea</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="icon-btn" id="cartToggle" aria-label="Cart">
+        <i class="fa-solid fa-bag-shopping"></i>
+        <span class="cart-count">0</span>
+      </button>
+      <button class="menuBtn" id="menuBtn"><i class="fa-solid fa-bars"></i></button>
+    </div>
+  </nav>
+</header>
+
+<div class="menuOverlay" id="menuOverlay"></div>
+<div class="mobileMenu" id="mobileMenu">
+  <a href="index.html">Home</a>
+  <a href="shop.html">Shop</a>
+  <a href="index.html#categories">Categories</a>
+  <a href="index.html#contact">Custom Idea</a>
+</div>
+
+<section class="hero">
+  <div class="hero-inner">
+    <span class="eyebrow">Layer by layer, made to order</span>
+    <a href="#contact" class="hero-custom-note">✨ Have a custom idea? Chat with us →</a>
+    <h1>Custom 3D prints for <em>everyday life.</em></h1>
+    <p>Fridge magnets, organisers, board games, keyrings and anime collectibles — designed and printed in-house. Order in a tap, checkout on WhatsApp.</p>
+    <div class="hero-actions">
+      <a href="shop.html" class="btn">Browse Shop</a>
+      <a href="#categories" class="btn btn-outline">View Categories</a>
+    </div>
+    <div class="layer-strip">
+      <div></div><div></div><div></div><div></div><div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="featured">
+  <div class="container">
+    <div class="section-head reveal">
+      <div>
+        <span class="eyebrow">Handpicked</span>
+        <h2>Featured Products</h2>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px;">
+        <select id="featuredSort" class="sort-select">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+        </select>
+        <a href="shop.html" class="btn btn-outline btn-sm">View All →</a>
+      </div>
+    </div>
+    <div class="product-grid" id="featuredGrid"></div>
+  </div>
+</section>
+
+<section class="section" id="categories">
+  <div class="container">
+    <div class="section-head reveal">
+      <div>
+        <span class="eyebrow">What we make</span>
+        <h2>Shop by Category</h2>
+      </div>
+      <p>Six lines, one workshop — everything printed and finished by hand.</p>
+    </div>
+    <div class="cat-grid" id="categoryGrid"></div>
+  </div>
+</section>
+
+<section class="section" id="contact">
+  <div class="container" style="text-align:center; max-width:640px;">
+    <span class="eyebrow reveal" style="color:var(--teal); font-family:'JetBrains Mono',monospace; letter-spacing:.12em; text-transform:uppercase; font-size:.8rem;">Get in touch</span>
+    <h2 class="reveal" style="margin:14px 0 18px;">Have a custom idea?</h2>
+    <p class="reveal" style="color:var(--gray); margin-bottom:32px;">Message us on WhatsApp with your idea, size and colour preference — we'll quote you directly.</p>
+    <a href="https://wa.me/919810704170?text=Hi%20ChillScenes3D%2C%20I%20have%20a%20custom%203D%20print%20idea." class="btn reveal" target="_blank">
+      <i class="fa-brands fa-whatsapp"></i>&nbsp; Chat on WhatsApp
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-logo">ChillScenes<span>3D</span></div>
+        <p>Custom 3D printed products — magnets, organisers, games, keyrings and anime collectibles.</p>
+      </div>
+      <div>
+        <div class="footer-title">Shop</div>
+        <div class="footer-links">
+          <a href="shop.html?category=fridge-magnets">Fridge Magnets</a>
+          <a href="shop.html?category=bathroom-organisers">Bathroom Organisers</a>
+          <a href="shop.html?category=office-organisers">Office Organisers</a>
+          <a href="shop.html?category=board-games">Board Games</a>
         </div>
       </div>
-    </div>`;
-}
-
-/* Only categories with at least one product show on the live site —
-   admin.html still sees every category (it needs to, to assign the first
-   product to a brand-new one). */
-function categoriesInUse() {
-  const used = new Set();
-  PRODUCTS.forEach(p => p.categories.forEach(c => used.add(c)));
-  return CATEGORIES.filter(c => used.has(c.slug));
-}
-
-/* ---------- HOMEPAGE ---------- */
-function renderCategoryGrid() {
-  const el = document.getElementById("categoryGrid");
-  if (!el) return;
-  el.innerHTML = categoriesInUse().map(c => {
-    const count = PRODUCTS.filter(p => p.categories.includes(c.slug)).length;
-    return `
-      <a href="shop.html?category=${c.slug}" class="cat-card reveal">
-        <span class="cat-icon">${c.icon}</span>
-        <h3>${c.name}</h3>
-        <span class="count">${count} items</span>
-      </a>`;
-  }).join("");
-}
-/* ---------- SORTING ---------- */
-function sortProducts(list, sortKey) {
-  const arr = [...list];
-  if (sortKey === "price-asc") arr.sort((a, b) => a.price - b.price);
-  else if (sortKey === "price-desc") arr.sort((a, b) => b.price - a.price);
-  else if (sortKey === "oldest") arr.sort((a, b) => new Date(a.dateAdded || 0) - new Date(b.dateAdded || 0));
-  else arr.sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0)); // newest (default)
-  return arr;
-}
-
-function renderFeatured() {
-  const el = document.getElementById("featuredGrid");
-  if (!el) return;
-  const sortKey = document.getElementById("featuredSort")?.value || "newest";
-  const items = sortProducts(PRODUCTS.filter(p => p.featured), sortKey);
-  el.innerHTML = items.map(productCard).join("");
-}
-
-/* ---------- SHOP PAGE ---------- */
-function renderShop() {
-  const grid = document.getElementById("shopGrid");
-  const tabsEl = document.getElementById("categoryTabs");
-  if (!grid) return;
-
-  const params = new URLSearchParams(location.search);
-  let active = params.get("category") || "all";
-
-  function draw() {
-    tabsEl.innerHTML = ["all", ...categoriesInUse().map(c => c.slug)].map(slug => {
-      const label = slug === "all" ? "All" : getCategory(slug).name;
-      return `<button class="tab ${slug === active ? "active" : ""}" data-slug="${slug}">${label}</button>`;
-    }).join("");
-
-    const items = active === "all" ? PRODUCTS : PRODUCTS.filter(p => p.categories.includes(active));
-    const sortKey = document.getElementById("shopSort")?.value || "newest";
-    const sorted = sortProducts(items, sortKey);
-    grid.innerHTML = sorted.length
-      ? sorted.map(productCard).join("")
-      : `<p style="color:var(--gray)">No products in this category yet.</p>`;
-
-    tabsEl.querySelectorAll(".tab").forEach(btn => {
-      btn.addEventListener("click", () => {
-        active = btn.dataset.slug;
-        const url = new URL(location);
-        active === "all" ? url.searchParams.delete("category") : url.searchParams.set("category", active);
-        history.pushState({}, "", url);
-        draw();
-        initReveal();
-      });
-    });
-    initReveal();
-  }
-  draw();
-}
-
-/* ---------- PRODUCT DETAIL PAGE ---------- */
-function renderProductDetail() {
-  const wrap = document.getElementById("pdpWrap");
-  if (!wrap) return;
-  const id = new URLSearchParams(location.search).get("id");
-  const p = getProduct(id);
-
-  if (!p) {
-    wrap.innerHTML = `<p>Product not found. <a href="shop.html" style="color:var(--orange)">Back to shop</a></p>`;
-    return;
-  }
-  document.title = p.name + " — ChillScenes3D";
-
-  const catLinks = p.categories.map(slug => {
-    const c = getCategory(slug);
-    return c ? `<a href="shop.html?category=${slug}">${c.name}</a>` : "";
-  }).filter(Boolean).join(" / ");
-
-  wrap.innerHTML = `
-    <div class="pdp-image reveal in"><img src="${p.image}" alt="${p.name}"></div>
-    <div class="pdp-info reveal in">
-      <div class="breadcrumb">
-        <a href="index.html">Home</a>${catLinks ? " / " + catLinks : ""}
-      </div>
-      <h1>${p.name}</h1>
-      <div class="pdp-price">₹${p.price}</div>
-      <p class="desc">${p.desc}</p>
-      <div class="pdp-qty">
-        <div class="qty-control">
-          <button id="qtyMinus">−</button>
-          <span id="qtyVal">1</span>
-          <button id="qtyPlus">+</button>
+      <div>
+        <div class="footer-title">Contact</div>
+        <div class="footer-links">
+          <a href="https://wa.me/919810704170" target="_blank">WhatsApp: +91 98107 04170</a>
+          <a href="index.html#contact">Custom Orders</a>
         </div>
       </div>
-      <div class="pdp-actions">
-        <button class="btn btn-outline" id="pdpAddCart">Add to Cart</button>
-        <button class="btn" id="pdpBuyNow">Buy Now</button>
-      </div>
-    </div>`;
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 ChillScenes3D. All rights reserved.</p>
+      <p>Made in-house, one layer at a time.</p>
+    </div>
+  </div>
+</footer>
 
-  let qty = 1;
-  document.getElementById("qtyMinus").onclick = () => { qty = Math.max(1, qty - 1); document.getElementById("qtyVal").textContent = qty; };
-  document.getElementById("qtyPlus").onclick = () => { qty += 1; document.getElementById("qtyVal").textContent = qty; };
-  document.getElementById("pdpAddCart").onclick = (e) => handleAddToCart(e, p.id, qty);
-  document.getElementById("pdpBuyNow").onclick = () => buyNowWhatsApp(p.id);
+<div class="cart-overlay" id="cartOverlay"></div>
+<aside class="cart-drawer" id="cartDrawer">
+  <div class="cart-head">
+    <h3>Your Cart</h3>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <button id="clearCartBtn" class="cart-clear" title="Clear cart">Clear</button>
+      <button id="cartClose"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+  <div class="cart-body" id="cartBody"></div>
+  <div class="cart-footer" id="cartFooter">
+    <div class="delivery-banner">🚚 Free delivery on orders above ₹2000</div>
+    <div class="pincode-row">
+      <label for="pincodeInput">Delivery Pincode</label>
+      <input type="text" id="pincodeInput" placeholder="Enter 6-digit pincode" inputmode="numeric" maxlength="6">
+    </div>
+    <div class="cart-total-row sub"><span>Subtotal</span><span id="cartSubtotal">₹0</span></div>
+    <div class="cart-total-row delivery"><span>Delivery</span><span id="cartDelivery">Enter pincode</span></div>
+    <div class="cart-total-row grand"><span>Total</span><span id="cartTotal">₹0</span></div>
+    <button class="btn btn-block" id="checkoutBtn">Checkout</button>
+  </div>
+</aside>
 
-  // related products — share at least one category
-  const relWrap = document.getElementById("relatedGrid");
-  if (relWrap) {
-    const rel = PRODUCTS.filter(x => x.id !== p.id && x.categories.some(c => p.categories.includes(c))).slice(0, 4);
-    relWrap.innerHTML = rel.map(productCard).join("");
-  }
-}
-
-/* ---------- MOBILE MENU ---------- */
-function initMobileMenu() {
-  document.getElementById("menuBtn")?.addEventListener("click", () => {
-    document.getElementById("mobileMenu")?.classList.add("active");
-    document.getElementById("menuOverlay")?.classList.add("active");
-  });
-  document.getElementById("menuOverlay")?.addEventListener("click", () => {
-    document.getElementById("mobileMenu")?.classList.remove("active");
-    document.getElementById("menuOverlay")?.classList.remove("active");
-  });
-}
-
-/* ---------- SCROLL REVEAL ---------- */
-function initReveal() {
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
-  }, { threshold: .12 });
-  document.querySelectorAll(".reveal:not(.in)").forEach(el => io.observe(el));
-}
-
-function renderAll() {
-  renderCategoryGrid();
-  renderFeatured();
-  renderShop();
-  renderProductDetail();
-  initReveal();
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  renderAll();
-  initMobileMenu();
-  document.getElementById("featuredSort")?.addEventListener("change", renderFeatured);
-  document.getElementById("shopSort")?.addEventListener("change", renderShop);
-});
-document.addEventListener("catalog:updated", renderAll);
+<script src="js/config.js"></script>
+<script src="js/products.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
