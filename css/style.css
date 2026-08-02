@@ -58,6 +58,45 @@ nav{
 }
 .menu a.menu-custom:hover{background:rgba(255,122,41,.1); color:var(--orange2);}
 .menu a.menu-custom::after{display:none;}
+
+/* ---------- SEARCH ---------- */
+.nav-search{position:relative; flex:1; max-width:340px; margin:0 24px;}
+.nav-search input{
+  width:100%; padding:11px 18px; border-radius:999px; background:var(--card);
+  border:1px solid var(--border); color:var(--cream); font-size:.88rem; font-family:inherit;
+}
+.nav-search input:focus{border-color:rgba(255,122,41,.4); outline:none;}
+.search-dropdown{
+  position:absolute; top:calc(100% + 10px); left:0; right:0; background:var(--ink2);
+  border:1px solid var(--border); border-radius:16px; padding:10px; max-height:420px; overflow-y:auto;
+  display:none; z-index:600; box-shadow:0 20px 50px rgba(0,0,0,.5);
+}
+.search-dropdown.active{display:block;}
+.search-section-label{font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; color:var(--gray); padding:8px 10px 4px;}
+.search-result-item{
+  display:flex; align-items:center; gap:12px; padding:8px 10px; border-radius:10px; transition:.15s;
+}
+.search-result-item:hover{background:rgba(255,255,255,.05);}
+.search-result-item img{width:38px; height:38px; border-radius:8px; object-fit:cover; background:var(--card);}
+.sr-name{font-size:.85rem; color:var(--cream);}
+.sr-price{font-size:.78rem; color:var(--orange); font-family:'JetBrains Mono',monospace;}
+.search-cat-icon{font-size:1.1rem; width:38px; text-align:center;}
+.search-empty{padding:16px 10px; color:var(--gray); font-size:.85rem; text-align:center;}
+.search-view-all{
+  display:block; text-align:center; padding:10px; margin-top:6px; border-top:1px solid var(--border);
+  font-size:.82rem; color:var(--orange);
+}
+.search-cat-chips{display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px; width:100%;}
+.cat-chip{
+  padding:9px 18px; border-radius:999px; background:var(--card); border:1px solid var(--border);
+  font-size:.85rem; color:var(--cream); transition:.2s;
+}
+.cat-chip:hover{border-color:rgba(255,122,41,.4);}
+
+@media(max-width:1000px){
+  .nav-search{display:none;}
+  .mobileMenu .nav-search.mobile-search{display:block; max-width:none; margin:0 0 20px;}
+}
 .nav-actions{display:flex; align-items:center; gap:18px;}
 .icon-btn{
   position:relative; width:42px; height:42px; border-radius:50%;
