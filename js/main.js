@@ -41,10 +41,22 @@ function renderCategoryGrid() {
       </a>`;
   }).join("");
 }
+/* ---------- SORTING ---------- */
+function sortProducts(list, sortKey) {
+  const arr = [...list];
+  if (sortKey === "price-asc") arr.sort((a, b) => a.price - b.price);
+  else if (sortKey === "price-desc") arr.sort((a, b) => b.price - a.price);
+  else if (sortKey === "oldest") arr.sort((a, b) => new Date(a.dateAdded || 0) - new Date(b.dateAdded || 0));
+  else arr.sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0)); // newest (default)
+  return arr;
+}
+
 function renderFeatured() {
   const el = document.getElementById("featuredGrid");
   if (!el) return;
-  el.innerHTML = PRODUCTS.filter(p => p.featured).map(productCard).join("");
+  const sortKey = document.getElementById("featuredSort")?.value || "newest";
+  const items = sortProducts(PRODUCTS.filter(p => p.featured), sortKey);
+  el.innerHTML = items.map(productCard).join("");
 }
 
 /* ---------- SHOP PAGE ---------- */
@@ -63,8 +75,10 @@ function renderShop() {
     }).join("");
 
     const items = active === "all" ? PRODUCTS : PRODUCTS.filter(p => p.categories.includes(active));
-    grid.innerHTML = items.length
-      ? items.map(productCard).join("")
+    const sortKey = document.getElementById("shopSort")?.value || "newest";
+    const sorted = sortProducts(items, sortKey);
+    grid.innerHTML = sorted.length
+      ? sorted.map(productCard).join("")
       : `<p style="color:var(--gray)">No products in this category yet.</p>`;
 
     tabsEl.querySelectorAll(".tab").forEach(btn => {
@@ -167,5 +181,7 @@ function renderAll() {
 document.addEventListener("DOMContentLoaded", () => {
   renderAll();
   initMobileMenu();
+  document.getElementById("featuredSort")?.addEventListener("change", renderFeatured);
+  document.getElementById("shopSort")?.addEventListener("change", renderShop);
 });
 document.addEventListener("catalog:updated", renderAll);
