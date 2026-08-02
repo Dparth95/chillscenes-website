@@ -163,6 +163,11 @@ nav{
 }
 .tab:hover{color:var(--cream);}
 .tab.active{background:var(--orange); border-color:var(--orange); color:#0b0e14; font-weight:600;}
+.sort-select{
+  padding:10px 16px; border-radius:999px; background:var(--card); border:1px solid var(--border);
+  color:var(--cream); font-size:.85rem; font-family:inherit; cursor:pointer;
+}
+.sort-select:hover{border-color:rgba(255,122,41,.4);}
 
 /* ---------- PRODUCT DETAIL PAGE ---------- */
 .pdp{display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:flex-start;}
