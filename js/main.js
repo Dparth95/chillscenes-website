@@ -66,16 +66,35 @@ function renderShop() {
   if (!grid) return;
 
   const params = new URLSearchParams(location.search);
+  const searchTerm = params.get("search");
   let active = params.get("category") || "all";
 
   function draw() {
+    const sortKey = document.getElementById("shopSort")?.value || "newest";
+
+    if (searchTerm) {
+      tabsEl.innerHTML = "";
+      const q = searchTerm.toLowerCase();
+      const matches = PRODUCTS.filter(p => p.name.toLowerCase().includes(q));
+      const matchedCats = categoriesInUse().filter(c => c.name.toLowerCase().includes(q));
+      const sorted = sortProducts(matches, sortKey);
+
+      const chips = matchedCats.length
+        ? `<div class="search-cat-chips">${matchedCats.map(c => `<a href="shop.html?category=${c.slug}" class="cat-chip">${c.icon} ${c.name}</a>`).join("")}</div>`
+        : "";
+      grid.innerHTML = chips + (sorted.length
+        ? sorted.map(productCard).join("")
+        : `<p style="color:var(--gray)">No products found for "${searchTerm}".</p>`);
+      initReveal();
+      return;
+    }
+
     tabsEl.innerHTML = ["all", ...categoriesInUse().map(c => c.slug)].map(slug => {
       const label = slug === "all" ? "All" : getCategory(slug).name;
       return `<button class="tab ${slug === active ? "active" : ""}" data-slug="${slug}">${label}</button>`;
     }).join("");
 
     const items = active === "all" ? PRODUCTS : PRODUCTS.filter(p => p.categories.includes(active));
-    const sortKey = document.getElementById("shopSort")?.value || "newest";
     const sorted = sortProducts(items, sortKey);
     grid.innerHTML = sorted.length
       ? sorted.map(productCard).join("")
@@ -85,6 +104,7 @@ function renderShop() {
       btn.addEventListener("click", () => {
         active = btn.dataset.slug;
         const url = new URL(location);
+        url.searchParams.delete("search");
         active === "all" ? url.searchParams.delete("category") : url.searchParams.set("category", active);
         history.pushState({}, "", url);
         draw();
@@ -170,6 +190,70 @@ function initReveal() {
   document.querySelectorAll(".reveal:not(.in)").forEach(el => io.observe(el));
 }
 
+/* ---------- SEARCH ---------- */
+function performSearch(term) {
+  const q = term.trim().toLowerCase();
+  if (!q) return { products: [], categories: [] };
+  const products = PRODUCTS.filter(p => p.name.toLowerCase().includes(q));
+  const categories = categoriesInUse().filter(c => c.name.toLowerCase().includes(q));
+  return { products, categories };
+}
+
+function renderSearchDropdown(container, term) {
+  const dropdown = container.querySelector(".search-dropdown");
+  if (!dropdown) return;
+  const q = term.trim();
+  if (!q) { dropdown.innerHTML = ""; dropdown.classList.remove("active"); return; }
+
+  const { products, categories } = performSearch(q);
+  if (!products.length && !categories.length) {
+    dropdown.innerHTML = `<div class="search-empty">No results for "${q}"</div>`;
+    dropdown.classList.add("active");
+    return;
+  }
+
+  let html = "";
+  if (products.length) {
+    html += `<div class="search-section-label">Products</div>`;
+    html += products.slice(0, 5).map(p => `
+      <a href="product.html?id=${p.id}" class="search-result-item">
+        <img src="${p.image}" alt="${p.name}">
+        <div><div class="sr-name">${p.name}</div><div class="sr-price">₹${p.price}</div></div>
+      </a>`).join("");
+  }
+  if (categories.length) {
+    html += `<div class="search-section-label">Categories</div>`;
+    html += categories.map(c => `
+      <a href="shop.html?category=${c.slug}" class="search-result-item">
+        <span class="search-cat-icon">${c.icon}</span>
+        <div class="sr-name">${c.name}</div>
+      </a>`).join("");
+  }
+  if (products.length > 5) {
+    html += `<a href="shop.html?search=${encodeURIComponent(q)}" class="search-view-all">View all ${products.length} results for "${q}" →</a>`;
+  }
+  dropdown.innerHTML = html;
+  dropdown.classList.add("active");
+}
+
+function initSearch() {
+  document.querySelectorAll(".nav-search").forEach(container => {
+    const input = container.querySelector(".nav-search-input");
+    const dropdown = container.querySelector(".search-dropdown");
+    if (!input) return;
+    input.addEventListener("input", () => renderSearchDropdown(container, input.value));
+    input.addEventListener("focus", () => { if (input.value.trim()) renderSearchDropdown(container, input.value); });
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter" && input.value.trim()) {
+        window.location.href = `shop.html?search=${encodeURIComponent(input.value.trim())}`;
+      }
+    });
+    document.addEventListener("click", e => {
+      if (!container.contains(e.target)) dropdown.classList.remove("active");
+    });
+  });
+}
+
 function renderAll() {
   renderCategoryGrid();
   renderFeatured();
@@ -181,6 +265,7 @@ function renderAll() {
 document.addEventListener("DOMContentLoaded", () => {
   renderAll();
   initMobileMenu();
+  initSearch();
   document.getElementById("featuredSort")?.addEventListener("change", renderFeatured);
   document.getElementById("shopSort")?.addEventListener("change", renderShop);
 });
