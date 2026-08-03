@@ -109,6 +109,53 @@
     border:1px solid var(--border); color:var(--cream); font-family:'JetBrains Mono',monospace; font-size:.85rem;
   }
   .delivery-row button{padding:8px 14px; font-size:.78rem;}
+
+  /* Category list controls */
+  .cat-row{display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); gap:10px;}
+  .cat-row:last-child{border-bottom:none;}
+  .cat-row-label{flex:1; font-size:.88rem;}
+  .cat-row-actions{display:flex; align-items:center; gap:4px;}
+  .cat-row-actions button{
+    width:30px; height:30px; border-radius:8px; background:none; border:none; color:var(--gray); font-size:.85rem;
+  }
+  .cat-row-actions button:hover{color:var(--orange); background:rgba(255,122,41,.1);}
+  .cat-row-actions .cat-remove:hover{color:#ff8080; background:rgba(255,90,90,.1);}
+  .rename-name-input, .rename-icon-input{
+    padding:8px 10px; border-radius:8px; background:var(--ink2); border:1px solid var(--border); color:var(--cream); font-size:.85rem;
+  }
+
+  /* Manage Products */
+  .manage-cat-group{border-bottom:1px solid var(--border); padding-bottom:4px; margin-bottom:4px;}
+  .manage-cat-group summary{
+    cursor:pointer; padding:14px 4px; font-size:.92rem; font-weight:600; list-style:none; display:flex; align-items:center; gap:8px;
+  }
+  .manage-cat-group summary::-webkit-details-marker{display:none;}
+  .manage-cat-group summary i.chev{color:var(--orange); font-size:.75rem; transition:.2s; margin-left:auto;}
+  .manage-cat-group[open] summary i.chev{transform:rotate(180deg);}
+  .manage-cat-count{font-size:.72rem; color:var(--gray); font-weight:400; background:var(--card); padding:2px 10px; border-radius:999px;}
+  .manage-row{display:flex; gap:14px; align-items:flex-start; padding:14px; background:var(--card); border:1px solid var(--border); border-radius:12px; margin-bottom:10px;}
+  .manage-thumb{width:56px; height:56px; border-radius:8px; object-fit:cover; flex-shrink:0; background:var(--ink2);}
+  .manage-fields{flex:1; min-width:0;}
+  .manage-name{font-size:.9rem; margin-bottom:8px; font-weight:600;}
+  .manage-row-inputs{display:flex; flex-direction:column; gap:8px;}
+  .manage-price{width:120px; padding:8px 12px; border-radius:8px; background:var(--ink2); border:1px solid var(--border); color:var(--cream); font-family:'JetBrains Mono',monospace; font-size:.85rem;}
+  .manage-desc{width:100%; padding:8px 12px; border-radius:8px; background:var(--ink2); border:1px solid var(--border); color:var(--cream); font-family:inherit; font-size:.82rem; resize:vertical;}
+  .manage-row-actions{display:flex; flex-direction:column; gap:8px; align-items:stretch; flex-shrink:0;}
+  .manage-row-actions button{white-space:nowrap; font-size:.78rem;}
+  .cat-picker-btn{align-self:flex-start;}
+  .visible-toggle{
+    padding:9px 14px; border-radius:999px; border:1px solid var(--border); background:var(--ink2); color:var(--cream); font-size:.78rem;
+  }
+  .visible-toggle.is-hidden{border-color:rgba(255,90,90,.35); color:#ff8080;}
+
+  /* Category picker popup (shared, positioned per click) */
+  .cat-picker-popup{
+    position:fixed; display:none; background:var(--ink2); border:1px solid var(--border); border-radius:10px;
+    padding:10px; z-index:9999; min-width:210px; max-height:260px; overflow-y:auto; box-shadow:0 20px 50px rgba(0,0,0,.5);
+  }
+  .cat-picker-popup.open{display:block;}
+  .cat-picker-item{display:flex; align-items:center; gap:8px; padding:7px 4px; font-size:.85rem; cursor:pointer;}
+  .cat-picker-item input{width:16px; height:16px;}
 </style>
 </head>
 <body>
@@ -152,53 +199,59 @@
     </div>
   </details>
 
-  <div class="section-label">Add Product</div>
+  <details class="panel" open>
+    <summary><i class="fa-solid fa-plus icon"></i> Add Product <i class="fa-solid fa-chevron-down chev"></i></summary>
+    <div class="details-body">
+      <div class="field">
+        <label>Product Image — tap to select</label>
+        <div class="img-grid" id="imgGrid"></div>
+        <div class="selected-name" id="selectedName">No photo selected</div>
+        <div class="refresh-row">
+          <a href="#" id="folderLink" target="_blank" style="font-size:.8rem; color:var(--orange); text-decoration:underline;">Open Photos Folder →</a>
+          <button type="button" class="refresh-btn" id="refreshImages" title="Refresh photo list">
+            <i class="fa-solid fa-rotate"></i>
+          </button>
+        </div>
+      </div>
 
-  <div class="field">
-    <label>Product Image — tap to select</label>
-    <div class="img-grid" id="imgGrid"></div>
-    <div class="selected-name" id="selectedName">No photo selected</div>
-    <div class="refresh-row">
-      <a href="#" id="folderLink" target="_blank" style="font-size:.8rem; color:var(--orange); text-decoration:underline;">Open Photos Folder →</a>
-      <button type="button" class="refresh-btn" id="refreshImages" title="Refresh photo list">
-        <i class="fa-solid fa-rotate"></i>
-      </button>
+      <div class="field">
+        <label>Product Name</label>
+        <input type="text" id="pName" placeholder="e.g. City Skyline Magnet">
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>Price (₹)</label>
+          <input type="number" id="pPrice" placeholder="e.g. 199" min="0">
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <select id="pCategory"></select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Description</label>
+        <textarea id="pDesc" placeholder="Short description shown on the product page"></textarea>
+      </div>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="pFeatured" checked>
+        <label for="pFeatured" style="margin:0;">Show on homepage (Featured)</label>
+      </div>
+
+      <button class="btn btn-block" id="submitBtn">Add Product</button>
     </div>
-  </div>
+  </details>
 
-  <div class="field">
-    <label>Product Name</label>
-    <input type="text" id="pName" placeholder="e.g. City Skyline Magnet">
-  </div>
-
-  <div class="row2">
-    <div class="field">
-      <label>Price (₹)</label>
-      <input type="number" id="pPrice" placeholder="e.g. 199" min="0">
-    </div>
-    <div class="field">
-      <label>Category</label>
-      <select id="pCategory"></select>
-    </div>
-  </div>
-
-  <div class="field">
-    <label>Description</label>
-    <textarea id="pDesc" placeholder="Short description shown on the product page"></textarea>
-  </div>
-
-  <div class="checkbox-row">
-    <input type="checkbox" id="pFeatured" checked>
-    <label for="pFeatured" style="margin:0;">Show on homepage (Featured)</label>
-  </div>
-
-  <button class="btn btn-block" id="submitBtn">Add Product</button>
+  <details class="panel" style="margin-top:26px;">
+    <summary><i class="fa-solid fa-box icon"></i> Manage Products <i class="fa-solid fa-chevron-down chev"></i></summary>
+    <div class="details-body" id="manageProducts"></div>
+  </details>
 </fieldset>
 
-<div class="section-label" style="margin-top:56px;">Manage Products</div>
-<div id="manageProducts"></div>
-
 <div class="log" id="log"></div>
+<div id="categoryPickerPopup" class="cat-picker-popup"></div>
 
 <p class="helper">
   Only one thing to set up: <code class="mono">js/config.js</code> needs your Apps Script Web App
@@ -246,13 +299,16 @@ catIconInput.addEventListener("input", () => {
 
 function renderCategoryList() {
   const el = document.getElementById("catList");
-  el.innerHTML = CATEGORIES.map(c => `
-    <div class="cat-row">
-      <span>${c.icon} ${c.name}</span>
-      <button type="button" class="cat-remove" data-slug="${c.slug}" title="Remove category">
-        <i class="fa-solid fa-trash"></i>
-      </button>
+  el.innerHTML = CATEGORIES.filter(c => c.slug !== "no-category").map(c => `
+    <div class="cat-row" data-slug="${c.slug}">
+      <span class="cat-row-label">${c.icon} ${c.name}</span>
+      <div class="cat-row-actions">
+        <button type="button" class="cat-visible-toggle" data-slug="${c.slug}" title="${c.visible === false ? "Hidden from site — click to show" : "Visible on site — click to hide"}">${c.visible === false ? "🚫" : "👁️"}</button>
+        <button type="button" class="cat-rename" data-slug="${c.slug}" title="Rename"><i class="fa-solid fa-pen"></i></button>
+        <button type="button" class="cat-remove" data-slug="${c.slug}" title="Remove"><i class="fa-solid fa-trash"></i></button>
+      </div>
     </div>`).join("");
+
   el.querySelectorAll(".cat-remove").forEach(btn => {
     btn.addEventListener("click", async () => {
       const slug = btn.dataset.slug;
@@ -269,6 +325,58 @@ function renderCategoryList() {
         setStatus("err", "Failed: " + err.message);
       }
     });
+  });
+
+  el.querySelectorAll(".cat-visible-toggle").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const slug = btn.dataset.slug;
+      const c = CATEGORIES.find(x => x.slug === slug);
+      if (!c) return;
+      const newVal = c.visible === false; // toggling to true if currently hidden
+      btn.disabled = true;
+      try {
+        await postToScript({ action: "setCategoryVisible", slug, visible: newVal });
+        c.visible = newVal;
+        btn.textContent = newVal ? "👁️" : "🚫";
+        btn.title = newVal ? "Visible on site — click to hide" : "Hidden from site — click to show";
+        setStatus("ok", `"${c.name}" is now ${newVal ? "visible" : "hidden"} on the site.`);
+      } catch (err) {
+        setStatus("err", "Failed: " + err.message);
+      }
+      btn.disabled = false;
+    });
+  });
+
+  el.querySelectorAll(".cat-rename").forEach(btn => {
+    btn.addEventListener("click", () => openCategoryRename(btn.dataset.slug));
+  });
+}
+
+function openCategoryRename(slug) {
+  const c = CATEGORIES.find(x => x.slug === slug);
+  if (!c) return;
+  const row = document.querySelector(`.cat-row[data-slug="${slug}"]`);
+  if (!row) return;
+  row.innerHTML = `
+    <input type="text" class="rename-name-input" value="${c.name}" style="flex:1;">
+    <input type="text" class="rename-icon-input" value="${c.icon}" maxlength="4" style="width:52px;">
+    <button type="button" class="btn btn-outline btn-sm rename-save">Save</button>
+    <button type="button" class="btn btn-sm rename-cancel" style="background:none; color:var(--gray);">Cancel</button>`;
+  row.querySelector(".rename-cancel").addEventListener("click", renderCategoryList);
+  row.querySelector(".rename-save").addEventListener("click", async () => {
+    const newName = row.querySelector(".rename-name-input").value.trim();
+    const newIcon = row.querySelector(".rename-icon-input").value.trim() || c.icon;
+    if (!newName) { setStatus("err", "Name can't be empty."); return; }
+    try {
+      await postToScript({ action: "renameCategory", slug, name: newName, icon: newIcon });
+      c.name = newName; c.icon = newIcon;
+      refreshCategoryDropdown();
+      renderCategoryList();
+      renderManageProducts();
+      setStatus("ok", `Category renamed to "${newName}".`);
+    } catch (err) {
+      setStatus("err", "Failed: " + err.message);
+    }
   });
 }
 
@@ -301,8 +409,16 @@ function renderDeliveryList() {
   });
 }
 
-/* ---------- MANAGE PRODUCTS (category-wise, editable price/description) ---------- */
+/* ---------- MANAGE PRODUCTS (category-wise, editable price/description/categories) ---------- */
+function categoryLabel(cats) {
+  const real = (cats || []).filter(c => c !== "no-category");
+  if (!real.length) return "No category";
+  if (real.length <= 2) return real.map(slug => getCategory(slug)?.name || slug).join(", ");
+  return real.length + " categories";
+}
+
 function manageProductRow(p) {
+  const cats = p._pendingCategories || p.categories;
   return `
     <div class="manage-row">
       <img src="${p.image}" alt="${p.name}" class="manage-thumb">
@@ -311,9 +427,13 @@ function manageProductRow(p) {
         <div class="manage-row-inputs">
           <input type="number" class="manage-price" data-id="${p.id}" value="${p.price}" min="0">
           <textarea class="manage-desc" data-id="${p.id}" rows="2" placeholder="Description">${p.desc || ""}</textarea>
+          <button type="button" class="btn btn-outline btn-sm cat-picker-btn" data-id="${p.id}">${categoryLabel(cats)} ▾</button>
         </div>
       </div>
-      <button type="button" class="btn btn-outline btn-sm manage-save" data-id="${p.id}">Save</button>
+      <div class="manage-row-actions">
+        <button type="button" class="visible-toggle ${p.visible === false ? "is-hidden" : ""}" data-id="${p.id}">${p.visible === false ? "🚫 Hidden" : "👁️ Visible"}</button>
+        <button type="button" class="btn btn-outline btn-sm manage-save" data-id="${p.id}">Save</button>
+      </div>
     </div>`;
 }
 
@@ -333,12 +453,34 @@ function renderManageProducts() {
     });
   });
 
-  const groupedSlugs = CATEGORIES.filter(c => groups[c.slug]);
-  el.innerHTML = groupedSlugs.map(c => `
-    <div class="manage-cat-group">
-      <h3 class="manage-cat-title">${c.icon} ${c.name} <span class="manage-cat-count">${groups[c.slug].length}</span></h3>
-      ${groups[c.slug].map(manageProductRow).join("")}
-    </div>`).join("");
+  const groupedCats = CATEGORIES.filter(c => groups[c.slug]);
+  el.innerHTML = groupedCats.map(c => `
+    <details class="manage-cat-group">
+      <summary>${c.icon} ${c.name} <span class="manage-cat-count">${groups[c.slug].length}</span><i class="fa-solid fa-chevron-down chev"></i></summary>
+      <div class="details-body">
+        ${groups[c.slug].map(manageProductRow).join("")}
+      </div>
+    </details>`).join("");
+
+  el.querySelectorAll(".visible-toggle").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const p = PRODUCTS.find(x => x.id === id);
+      if (!p) return;
+      const newVal = p.visible === false;
+      btn.disabled = true;
+      try {
+        await postToScript({ action: "setProductVisible", imageId: p.imageId, visible: newVal });
+        p.visible = newVal;
+        btn.textContent = newVal ? "👁️ Visible" : "🚫 Hidden";
+        btn.classList.toggle("is-hidden", !newVal);
+        setStatus("ok", `"${p.name}" is now ${newVal ? "visible" : "hidden"} on the site.`);
+      } catch (err) {
+        setStatus("err", "Failed: " + err.message);
+      }
+      btn.disabled = false;
+    });
+  });
 
   el.querySelectorAll(".manage-save").forEach(btn => {
     btn.addEventListener("click", async () => {
@@ -350,17 +492,19 @@ function renderManageProducts() {
       const newPrice = priceInput.value.trim();
       const newDesc = descInput.value.trim();
       if (!newPrice) { setStatus("err", "Price can't be empty."); return; }
+      const categoriesToSend = (p._pendingCategories || p.categories).filter(c => c !== "no-category");
 
       const original = btn.textContent;
       btn.disabled = true;
       btn.textContent = "Saving…";
       try {
-        await postToScript({ action: "addProduct", name: p.name, price: Number(newPrice), imageId: p.imageId, imageName: p.imageName, desc: newDesc, featured: p.featured });
+        await postToScript({ action: "addProduct", name: p.name, price: Number(newPrice), imageId: p.imageId, imageName: p.imageName, desc: newDesc, featured: p.featured, categories: categoriesToSend });
         p.price = Number(newPrice);
         p.desc = newDesc;
+        p.categories = categoriesToSend.length ? categoriesToSend : ["no-category"];
+        delete p._pendingCategories;
         setStatus("ok", `"${p.name}" updated.`);
-        btn.textContent = "Saved ✓";
-        setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1500);
+        renderManageProducts();
       } catch (err) {
         setStatus("err", "Failed: " + err.message);
         btn.textContent = original;
@@ -369,6 +513,58 @@ function renderManageProducts() {
     });
   });
 }
+
+/* ---------- CATEGORY PICKER POPUP (shared, used by Manage Products rows) ---------- */
+let categoryPickerProductId = null;
+let categoryPickerPending = new Set();
+
+function openCategoryPicker(productId, btnEl) {
+  const p = PRODUCTS.find(x => x.id === productId);
+  if (!p) return;
+  categoryPickerProductId = productId;
+  categoryPickerPending = new Set((p._pendingCategories || p.categories).filter(c => c !== "no-category"));
+
+  const popup = document.getElementById("categoryPickerPopup");
+  popup.innerHTML = CATEGORIES.filter(c => c.slug !== "no-category").map(c => `
+    <label class="cat-picker-item">
+      <input type="checkbox" value="${c.slug}" ${categoryPickerPending.has(c.slug) ? "checked" : ""}>
+      <span>${c.icon} ${c.name}</span>
+    </label>`).join("") || `<p style="color:var(--gray); font-size:.82rem; padding:4px;">No categories yet.</p>`;
+
+  popup.querySelectorAll("input[type=checkbox]").forEach(cb => {
+    cb.addEventListener("change", () => {
+      if (cb.checked) categoryPickerPending.add(cb.value);
+      else categoryPickerPending.delete(cb.value);
+    });
+  });
+
+  const rect = btnEl.getBoundingClientRect();
+  popup.style.top = (rect.bottom + 6) + "px";
+  popup.style.left = rect.left + "px";
+  popup.classList.add("open");
+}
+function closeCategoryPicker() {
+  if (categoryPickerProductId) {
+    const p = PRODUCTS.find(x => x.id === categoryPickerProductId);
+    if (p) {
+      p._pendingCategories = Array.from(categoryPickerPending);
+      const btn = document.querySelector(`.cat-picker-btn[data-id="${categoryPickerProductId}"]`);
+      if (btn) btn.textContent = categoryLabel(p._pendingCategories) + " ▾";
+    }
+  }
+  document.getElementById("categoryPickerPopup").classList.remove("open");
+  categoryPickerProductId = null;
+}
+document.addEventListener("click", e => {
+  if (e.target.closest(".cat-picker-btn")) {
+    const btn = e.target.closest(".cat-picker-btn");
+    if (categoryPickerProductId === btn.dataset.id) { closeCategoryPicker(); return; }
+    openCategoryPicker(btn.dataset.id, btn);
+    return;
+  }
+  const popup = document.getElementById("categoryPickerPopup");
+  if (popup.classList.contains("open") && !popup.contains(e.target)) closeCategoryPicker();
+});
 
 function setStatus(type, msg) {
   statusBar.className = "status-bar " + type;
@@ -422,15 +618,23 @@ document.getElementById("refreshImages").addEventListener("click", async () => {
 });
 
 /* ---------- STARTUP ---------- */
+// Uses ?all=1 so hidden products/categories still show here for management —
+// the public site's own fetch (js/products.js) never sees hidden items.
+async function fetchAdminCatalog() {
+  const res = await fetch(`${APPSCRIPT_URL}?action=catalog&all=1`);
+  if (!res.ok) throw new Error("Couldn't reach the Apps Script Web App — check the URL in js/config.js.");
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  applyCatalog(data); // reuses products.js's function to populate PRODUCTS / CATEGORIES / DELIVERY_RATES
+}
+
 (async function init() {
   if (typeof APPSCRIPT_URL === "undefined" || APPSCRIPT_URL.indexOf("PASTE_YOUR") === 0) {
     setStatus("err", "js/config.js needs your Apps Script Web App URL — see apps-script/README-apps-script.md.");
     return;
   }
   try {
-    const res = await fetch(`${APPSCRIPT_URL}?action=catalog`);
-    if (!res.ok) throw new Error("Couldn't reach the Apps Script Web App — check the URL in js/config.js.");
-    await refreshCatalog(); // populates PRODUCTS / CATEGORIES / DELIVERY_RATES
+    await fetchAdminCatalog();
     refreshCategoryDropdown();
     renderCategoryList();
     renderDeliveryList();
@@ -463,7 +667,7 @@ document.getElementById("addCategoryBtn").addEventListener("click", async () => 
 
   try {
     const data = await postToScript({ action: "addCategory", name, icon });
-    CATEGORIES.push({ slug: data.slug, name, icon });
+    CATEGORIES.push({ slug: data.slug, name, icon, visible: true });
     refreshCategoryDropdown();
     renderCategoryList();
     catSelect.value = data.slug;
@@ -502,7 +706,7 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
     selectedImageId = "";
     selectedImageName = "";
     selectedName.textContent = "No photo selected";
-    await refreshCatalog();
+    await fetchAdminCatalog();
     renderManageProducts();
     await loadImageList();
   } catch (err) {
