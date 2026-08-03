@@ -151,6 +151,11 @@ function renderProductDetail() {
           <button id="qtyPlus">+</button>
         </div>
       </div>
+      <div class="field" style="margin-bottom:20px;">
+        <label style="display:block; font-size:.8rem; color:var(--gray); margin-bottom:8px;">Phone Number <span style="color:var(--gray); font-weight:400;">(needed for Buy Now)</span></label>
+        <input type="tel" id="pdpPhone" placeholder="Your phone number" value="${localStorage.getItem("cs_phone") || ""}"
+          style="width:100%; padding:13px 16px; border-radius:10px; background:var(--card); border:1px solid var(--border); color:var(--cream); font-family:inherit; font-size:.95rem;">
+      </div>
       <div class="pdp-actions">
         <button class="btn btn-outline" id="pdpAddCart">Add to Cart</button>
         <button class="btn" id="pdpBuyNow">Buy Now</button>
@@ -162,6 +167,9 @@ function renderProductDetail() {
   document.getElementById("qtyPlus").onclick = () => { qty += 1; document.getElementById("qtyVal").textContent = qty; };
   document.getElementById("pdpAddCart").onclick = (e) => handleAddToCart(e, p.id, qty);
   document.getElementById("pdpBuyNow").onclick = () => buyNowWhatsApp(p.id);
+  document.getElementById("pdpPhone")?.addEventListener("input", e => {
+    localStorage.setItem("cs_phone", e.target.value.trim());
+  });
 
   // related products — share at least one category
   const relWrap = document.getElementById("relatedGrid");
