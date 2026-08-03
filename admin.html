@@ -532,6 +532,8 @@ function manageProductRow(p) {
     </div>`;
 }
 
+let openManageGroups = new Set();
+
 function renderManageProducts() {
   const el = document.getElementById("manageProducts");
   if (!el) return;
@@ -550,12 +552,19 @@ function renderManageProducts() {
 
   const groupedCats = CATEGORIES.filter(c => groups[c.slug]);
   el.innerHTML = groupedCats.map(c => `
-    <details class="manage-cat-group">
+    <details class="manage-cat-group" data-slug="${c.slug}" ${openManageGroups.has(c.slug) ? "open" : ""}>
       <summary>${c.icon} ${c.name} <span class="manage-cat-count">${groups[c.slug].length}</span><i class="fa-solid fa-chevron-down chev"></i></summary>
       <div class="details-body">
         ${groups[c.slug].map(manageProductRow).join("")}
       </div>
     </details>`).join("");
+
+  el.querySelectorAll(".manage-cat-group").forEach(det => {
+    det.addEventListener("toggle", () => {
+      if (det.open) openManageGroups.add(det.dataset.slug);
+      else openManageGroups.delete(det.dataset.slug);
+    });
+  });
 
   el.querySelectorAll(".visible-toggle").forEach(cb => {
     cb.addEventListener("change", async () => {
@@ -589,6 +598,8 @@ function renderManageProducts() {
       const newDesc = descInput.value.trim();
       if (!newPrice) { setStatus("err", "Price can't be empty."); return; }
       const categoriesToSend = (p._pendingCategories || p.categories).filter(c => c !== "no-category");
+      const finalCategories = categoriesToSend.length ? categoriesToSend : ["no-category"];
+      const categoriesChanged = JSON.stringify([...finalCategories].sort()) !== JSON.stringify([...p.categories].sort());
 
       const original = btn.textContent;
       btn.disabled = true;
@@ -597,10 +608,16 @@ function renderManageProducts() {
         await postToScript({ action: "addProduct", name: p.name, price: Number(newPrice), imageId: p.imageId, imageName: p.imageName, desc: newDesc, featured: p.featured, categories: categoriesToSend });
         p.price = Number(newPrice);
         p.desc = newDesc;
-        p.categories = categoriesToSend.length ? categoriesToSend : ["no-category"];
+        p.categories = finalCategories;
         delete p._pendingCategories;
         setStatus("ok", `"${p.name}" updated.`);
-        renderManageProducts();
+        if (categoriesChanged) {
+          // Product needs to move between category groups — only now is a full re-render necessary.
+          renderManageProducts();
+        } else {
+          btn.textContent = "Saved ✓";
+          setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1200);
+        }
       } catch (err) {
         setStatus("err", "Failed: " + err.message);
         btn.textContent = original;
