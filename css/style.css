@@ -277,19 +277,17 @@ nav{
 .cart-item-remove{background:none; border:none; color:var(--gray); align-self:flex-start;}
 .cart-item-remove:hover{color:var(--orange);}
 .cart-footer{padding:22px 24px; border-top:1px solid var(--border); display:none;}
-.pincode-row{margin-bottom:14px;}
-.pincode-row label{display:block; font-size:.75rem; color:var(--gray); margin-bottom:6px;}
-.pincode-row input{
-  width:100%; padding:11px 14px; border-radius:10px; background:var(--card);
-  border:1px solid var(--border); color:var(--cream); font-family:'JetBrains Mono',monospace; font-size:.9rem;
+.compact-fields{display:flex; flex-direction:column; gap:8px; margin-bottom:14px;}
+.compact-fields input{
+  width:100%; padding:9px 12px; border-radius:8px; background:var(--card);
+  border:1px solid var(--border); color:var(--cream); font-family:'JetBrains Mono',monospace; font-size:.82rem;
 }
-.delivery-note{font-size:.78rem; color:var(--gray); line-height:1.6; margin-bottom:18px;}
-.coupon-row{display:flex; gap:8px; margin-bottom:6px;}
+.coupon-row{display:flex; gap:6px; margin-bottom:6px;}
 .coupon-row input{
-  flex:1; padding:11px 14px; border-radius:10px; background:var(--card); border:1px solid var(--border);
-  color:var(--cream); font-family:'JetBrains Mono',monospace; font-size:.85rem; text-transform:uppercase;
+  flex:1; padding:8px 12px; border-radius:8px; background:var(--card); border:1px solid var(--border);
+  color:var(--cream); font-family:'JetBrains Mono',monospace; font-size:.78rem; text-transform:uppercase; min-width:0;
 }
-.coupon-row button{padding:11px 16px; font-size:.8rem; flex-shrink:0;}
+.coupon-row button{padding:8px 14px; font-size:.75rem; flex-shrink:0;}
 .coupon-status{font-size:.78rem; margin-bottom:14px; min-height:1.1em;}
 .coupon-status.ok{color:var(--teal);}
 .coupon-status.err{color:#ff8080;}
