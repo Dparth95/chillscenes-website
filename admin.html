@@ -147,6 +147,21 @@
     padding:9px 14px; border-radius:999px; border:1px solid var(--border); background:var(--ink2); color:var(--cream); font-size:.78rem;
   }
   .visible-toggle.is-hidden{border-color:rgba(255,90,90,.35); color:#ff8080;}
+  .toggle-switch{
+    position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; cursor:pointer;
+  }
+  .toggle-switch input{opacity:0; width:0; height:0; position:absolute;}
+  .toggle-slider{
+    position:absolute; inset:0; background:var(--ink2); border:1px solid var(--border); border-radius:999px; transition:.2s;
+  }
+  .toggle-slider::before{
+    content:""; position:absolute; width:16px; height:16px; left:3px; top:2px; background:var(--gray);
+    border-radius:50%; transition:.2s;
+  }
+  .toggle-switch input:checked + .toggle-slider{background:rgba(33,199,168,.15); border-color:rgba(33,199,168,.4);}
+  .toggle-switch input:checked + .toggle-slider::before{transform:translateX(18px); background:var(--teal);}
+  .toggle-row{display:flex; align-items:center; gap:10px;}
+  .toggle-row-label{font-size:.78rem; color:var(--gray);}
 
   /* Category picker popup (shared, positioned per click) */
   .cat-picker-popup{
@@ -196,6 +211,26 @@
         state automatically at checkout. Leave a state blank to use the default (₹79).
       </p>
       <div id="deliveryList"></div>
+    </div>
+  </details>
+
+  <details class="panel">
+    <summary><i class="fa-solid fa-tag icon"></i> Coupons <i class="fa-solid fa-chevron-down chev"></i></summary>
+    <div class="details-body">
+      <div class="row3">
+        <div class="field" style="margin-bottom:0;">
+          <label>Code</label>
+          <input type="text" id="couponCodeInput" placeholder="e.g. WELCOME10" style="text-transform:uppercase;">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Discount %</label>
+          <input type="number" id="couponDiscountInput" placeholder="10" min="1" max="100">
+        </div>
+        <div class="field" style="margin-bottom:0; display:flex; align-items:flex-end;">
+          <button class="btn btn-outline btn-block" id="addCouponBtn" type="button">Add Coupon</button>
+        </div>
+      </div>
+      <div id="couponsList" style="margin-top:16px;"></div>
     </div>
   </details>
 
@@ -303,7 +338,10 @@ function renderCategoryList() {
     <div class="cat-row" data-slug="${c.slug}">
       <span class="cat-row-label">${c.icon} ${c.name}</span>
       <div class="cat-row-actions">
-        <button type="button" class="cat-visible-toggle" data-slug="${c.slug}" title="${c.visible === false ? "Hidden from site — click to show" : "Visible on site — click to hide"}">${c.visible === false ? "🚫" : "👁️"}</button>
+        <label class="toggle-switch" title="${c.visible === false ? "Hidden from site" : "Visible on site"}">
+          <input type="checkbox" class="cat-visible-toggle" data-slug="${c.slug}" ${c.visible === false ? "" : "checked"}>
+          <span class="toggle-slider"></span>
+        </label>
         <button type="button" class="cat-rename" data-slug="${c.slug}" title="Rename"><i class="fa-solid fa-pen"></i></button>
         <button type="button" class="cat-remove" data-slug="${c.slug}" title="Remove"><i class="fa-solid fa-trash"></i></button>
       </div>
@@ -327,23 +365,22 @@ function renderCategoryList() {
     });
   });
 
-  el.querySelectorAll(".cat-visible-toggle").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const slug = btn.dataset.slug;
+  el.querySelectorAll(".cat-visible-toggle").forEach(cb => {
+    cb.addEventListener("change", async () => {
+      const slug = cb.dataset.slug;
       const c = CATEGORIES.find(x => x.slug === slug);
       if (!c) return;
-      const newVal = c.visible === false; // toggling to true if currently hidden
-      btn.disabled = true;
+      const newVal = cb.checked;
+      cb.disabled = true;
       try {
         await postToScript({ action: "setCategoryVisible", slug, visible: newVal });
         c.visible = newVal;
-        btn.textContent = newVal ? "👁️" : "🚫";
-        btn.title = newVal ? "Visible on site — click to hide" : "Hidden from site — click to show";
         setStatus("ok", `"${c.name}" is now ${newVal ? "visible" : "hidden"} on the site.`);
       } catch (err) {
+        cb.checked = !newVal; // revert on failure
         setStatus("err", "Failed: " + err.message);
       }
-      btn.disabled = false;
+      cb.disabled = false;
     });
   });
 
@@ -409,6 +446,58 @@ function renderDeliveryList() {
   });
 }
 
+/* ---------- COUPONS ---------- */
+let COUPONS = [];
+async function fetchCoupons() {
+  const res = await fetch(`${APPSCRIPT_URL}?action=coupons`);
+  const data = await res.json();
+  COUPONS = data.coupons || [];
+}
+function renderCouponsList() {
+  const el = document.getElementById("couponsList");
+  if (!el) return;
+  el.innerHTML = COUPONS.length ? COUPONS.map(c => `
+    <div class="delivery-row">
+      <span class="delivery-state">${c.code}</span>
+      <span class="mono" style="color:var(--orange); margin-right:12px; font-size:.85rem;">${c.discount}% off</span>
+      <button type="button" class="cat-remove coupon-remove" data-code="${c.code}" title="Remove">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>`).join("") : `<p style="color:var(--gray); font-size:.85rem;">No coupons yet.</p>`;
+
+  el.querySelectorAll(".coupon-remove").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const code = btn.dataset.code;
+      if (!confirm(`Remove coupon "${code}"?`)) return;
+      try {
+        await postToScript({ action: "removeCoupon", code });
+        COUPONS = COUPONS.filter(c => c.code !== code);
+        renderCouponsList();
+        setStatus("ok", `Coupon "${code}" removed.`);
+      } catch (err) {
+        setStatus("err", "Failed: " + err.message);
+      }
+    });
+  });
+}
+document.getElementById("addCouponBtn").addEventListener("click", async () => {
+  const codeInput = document.getElementById("couponCodeInput");
+  const discountInput = document.getElementById("couponDiscountInput");
+  const code = codeInput.value.trim().toUpperCase();
+  const discount = discountInput.value.trim();
+  if (!code || !discount) { setStatus("err", "Enter a code and discount percent."); return; }
+  try {
+    const data = await postToScript({ action: "addCoupon", code, discount: Number(discount) });
+    COUPONS.push({ code: data.code, discount: data.discount });
+    renderCouponsList();
+    setStatus("ok", `Coupon "${data.code}" added.`);
+    codeInput.value = "";
+    discountInput.value = "";
+  } catch (err) {
+    setStatus("err", "Failed: " + err.message);
+  }
+});
+
 /* ---------- MANAGE PRODUCTS (category-wise, editable price/description/categories) ---------- */
 function categoryLabel(cats) {
   const real = (cats || []).filter(c => c !== "no-category");
@@ -431,7 +520,13 @@ function manageProductRow(p) {
         </div>
       </div>
       <div class="manage-row-actions">
-        <button type="button" class="visible-toggle ${p.visible === false ? "is-hidden" : ""}" data-id="${p.id}">${p.visible === false ? "🚫 Hidden" : "👁️ Visible"}</button>
+        <div class="toggle-row">
+          <label class="toggle-switch" title="${p.visible === false ? "Hidden from site" : "Visible on site"}">
+            <input type="checkbox" class="visible-toggle" data-id="${p.id}" ${p.visible === false ? "" : "checked"}>
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-row-label">${p.visible === false ? "Hidden" : "Visible"}</span>
+        </div>
         <button type="button" class="btn btn-outline btn-sm manage-save" data-id="${p.id}">Save</button>
       </div>
     </div>`;
@@ -462,23 +557,24 @@ function renderManageProducts() {
       </div>
     </details>`).join("");
 
-  el.querySelectorAll(".visible-toggle").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const id = btn.dataset.id;
+  el.querySelectorAll(".visible-toggle").forEach(cb => {
+    cb.addEventListener("change", async () => {
+      const id = cb.dataset.id;
       const p = PRODUCTS.find(x => x.id === id);
       if (!p) return;
-      const newVal = p.visible === false;
-      btn.disabled = true;
+      const newVal = cb.checked;
+      const label = cb.closest(".toggle-row")?.querySelector(".toggle-row-label");
+      cb.disabled = true;
       try {
         await postToScript({ action: "setProductVisible", imageId: p.imageId, visible: newVal });
         p.visible = newVal;
-        btn.textContent = newVal ? "👁️ Visible" : "🚫 Hidden";
-        btn.classList.toggle("is-hidden", !newVal);
+        if (label) label.textContent = newVal ? "Visible" : "Hidden";
         setStatus("ok", `"${p.name}" is now ${newVal ? "visible" : "hidden"} on the site.`);
       } catch (err) {
+        cb.checked = !newVal; // revert on failure
         setStatus("err", "Failed: " + err.message);
       }
-      btn.disabled = false;
+      cb.disabled = false;
     });
   });
 
@@ -638,6 +734,8 @@ async function fetchAdminCatalog() {
     refreshCategoryDropdown();
     renderCategoryList();
     renderDeliveryList();
+    await fetchCoupons();
+    renderCouponsList();
     renderManageProducts();
     const n = await loadImageList();
     setStatus("ok", `Ready — ${n} photo(s) found.`);
