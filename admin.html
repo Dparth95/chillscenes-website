@@ -68,6 +68,17 @@
   .panel h2{font-size:1.05rem; margin-bottom:16px; display:flex; align-items:center; gap:8px;}
   .panel h2 i{color:var(--orange); font-size:.95rem;}
   .section-label{font-size:.75rem; text-transform:uppercase; letter-spacing:.1em; color:var(--gray); margin:38px 0 16px;}
+  .manage-cat-group{margin-bottom:36px;}
+  .manage-cat-title{font-size:1rem; margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+  .manage-cat-count{font-size:.75rem; color:var(--gray); font-weight:400; background:var(--card); padding:2px 10px; border-radius:999px;}
+  .manage-row{display:flex; gap:14px; align-items:flex-start; padding:14px; background:var(--card); border:1px solid var(--border); border-radius:12px; margin-bottom:10px;}
+  .manage-thumb{width:56px; height:56px; border-radius:8px; object-fit:cover; flex-shrink:0; background:var(--ink2);}
+  .manage-fields{flex:1; min-width:0;}
+  .manage-name{font-size:.9rem; margin-bottom:8px; font-weight:600;}
+  .manage-row-inputs{display:flex; flex-direction:column; gap:8px;}
+  .manage-price{width:120px; padding:8px 12px; border-radius:8px; background:var(--ink2); border:1px solid var(--border); color:var(--cream); font-family:'JetBrains Mono',monospace; font-size:.85rem;}
+  .manage-desc{width:100%; padding:8px 12px; border-radius:8px; background:var(--ink2); border:1px solid var(--border); color:var(--cream); font-family:inherit; font-size:.82rem; resize:vertical;}
+  .manage-save{flex-shrink:0; align-self:flex-start; white-space:nowrap;}
   .cat-list{margin-top:16px; border-top:1px solid var(--border); padding-top:12px;}
   .emoji-grid{display:flex; flex-wrap:wrap; gap:8px;}
   .emoji-grid button{
@@ -184,13 +195,15 @@
   <button class="btn btn-block" id="submitBtn">Add Product</button>
 </fieldset>
 
+<div class="section-label" style="margin-top:56px;">Manage Products</div>
+<div id="manageProducts"></div>
+
 <div class="log" id="log"></div>
 
 <p class="helper">
   Only one thing to set up: <code class="mono">js/config.js</code> needs your Apps Script Web App
-  URL (see <code class="mono">apps-script/README-apps-script.md</code>). Photos come from a Google
-  Drive folder ("ChillScenes3D Photos") that's auto-created the first time this page loads —
-  use the "Open Photos Folder" link above to add photos from your phone or PC.
+  URL (see <code class="mono">apps-script/README-apps-script.md</code>). Photos come from your
+  Drive photos folder — use the "Open Photos Folder" link above to add more from your phone or PC.
 </p>
 
 <script src="js/config.js"></script>
@@ -250,6 +263,7 @@ function renderCategoryList() {
         if (idx > -1) CATEGORIES.splice(idx, 1);
         refreshCategoryDropdown();
         renderCategoryList();
+        renderManageProducts();
         setStatus("ok", "Category removed.");
       } catch (err) {
         setStatus("err", "Failed: " + err.message);
@@ -282,6 +296,75 @@ function renderDeliveryList() {
         setStatus("ok", `Delivery price for ${state} saved: ₹${price}.`);
       } catch (err) {
         setStatus("err", "Failed: " + err.message);
+      }
+    });
+  });
+}
+
+/* ---------- MANAGE PRODUCTS (category-wise, editable price/description) ---------- */
+function manageProductRow(p) {
+  return `
+    <div class="manage-row">
+      <img src="${p.image}" alt="${p.name}" class="manage-thumb">
+      <div class="manage-fields">
+        <div class="manage-name">${p.name}</div>
+        <div class="manage-row-inputs">
+          <input type="number" class="manage-price" data-id="${p.id}" value="${p.price}" min="0">
+          <textarea class="manage-desc" data-id="${p.id}" rows="2" placeholder="Description">${p.desc || ""}</textarea>
+        </div>
+      </div>
+      <button type="button" class="btn btn-outline btn-sm manage-save" data-id="${p.id}">Save</button>
+    </div>`;
+}
+
+function renderManageProducts() {
+  const el = document.getElementById("manageProducts");
+  if (!el) return;
+  if (!PRODUCTS.length) {
+    el.innerHTML = `<p style="color:var(--gray); font-size:.85rem;">No products yet.</p>`;
+    return;
+  }
+
+  const groups = {};
+  PRODUCTS.forEach(p => {
+    p.categories.forEach(slug => {
+      if (!groups[slug]) groups[slug] = [];
+      groups[slug].push(p);
+    });
+  });
+
+  const groupedSlugs = CATEGORIES.filter(c => groups[c.slug]);
+  el.innerHTML = groupedSlugs.map(c => `
+    <div class="manage-cat-group">
+      <h3 class="manage-cat-title">${c.icon} ${c.name} <span class="manage-cat-count">${groups[c.slug].length}</span></h3>
+      ${groups[c.slug].map(manageProductRow).join("")}
+    </div>`).join("");
+
+  el.querySelectorAll(".manage-save").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const p = PRODUCTS.find(x => x.id === id);
+      if (!p) return;
+      const priceInput = el.querySelector(`.manage-price[data-id="${id}"]`);
+      const descInput = el.querySelector(`.manage-desc[data-id="${id}"]`);
+      const newPrice = priceInput.value.trim();
+      const newDesc = descInput.value.trim();
+      if (!newPrice) { setStatus("err", "Price can't be empty."); return; }
+
+      const original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "Saving…";
+      try {
+        await postToScript({ action: "addProduct", name: p.name, price: Number(newPrice), imageId: p.imageId, imageName: p.imageName, desc: newDesc, featured: p.featured });
+        p.price = Number(newPrice);
+        p.desc = newDesc;
+        setStatus("ok", `"${p.name}" updated.`);
+        btn.textContent = "Saved ✓";
+        setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1500);
+      } catch (err) {
+        setStatus("err", "Failed: " + err.message);
+        btn.textContent = original;
+        btn.disabled = false;
       }
     });
   });
@@ -347,10 +430,11 @@ document.getElementById("refreshImages").addEventListener("click", async () => {
   try {
     const res = await fetch(`${APPSCRIPT_URL}?action=catalog`);
     if (!res.ok) throw new Error("Couldn't reach the Apps Script Web App — check the URL in js/config.js.");
-    await res.json();
+    await refreshCatalog(); // populates PRODUCTS / CATEGORIES / DELIVERY_RATES
     refreshCategoryDropdown();
     renderCategoryList();
     renderDeliveryList();
+    renderManageProducts();
     const n = await loadImageList();
     setStatus("ok", `Ready — ${n} photo(s) found.`);
     formArea.classList.add("enabled");
@@ -419,6 +503,7 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
     selectedImageName = "";
     selectedName.textContent = "No photo selected";
     await refreshCatalog();
+    renderManageProducts();
     await loadImageList();
   } catch (err) {
     setStatus("err", "Failed: " + err.message);
