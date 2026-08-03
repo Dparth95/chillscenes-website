@@ -11,12 +11,12 @@ const WHATSAPP_NUMBER = "919810704170"; // country code 91 + number
 
 /* Fires the order off to the Orders sheet — best-effort, never blocks
    checkout on failure or slowness. items: [{name, qty, price, imageId}] */
-function logOrderToSheet(name, phone, pincode, items, total) {
+function logOrderToSheet(name, phone, pincode, items, total, couponCode, discountAmt) {
   if (typeof APPSCRIPT_URL === "undefined" || APPSCRIPT_URL.indexOf("PASTE_YOUR") === 0) return;
   fetch(APPSCRIPT_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: "logOrder", name, phone, pincode, items, total })
+    body: JSON.stringify({ action: "logOrder", name, phone, pincode, items, total, coupon: couponCode || "", discount: discountAmt || 0 })
   }).catch(() => {});
 }
 
@@ -83,6 +83,52 @@ function updateCartCount() {
     el.textContent = n;
     el.style.display = n > 0 ? "flex" : "none";
   });
+}
+
+/* ---------- COUPON ---------- */
+function getAppliedCoupon() {
+  const code = localStorage.getItem("cs_coupon_code") || "";
+  const discount = Number(localStorage.getItem("cs_coupon_discount") || 0);
+  return code ? { code, discount } : null;
+}
+function setAppliedCoupon(code, discount) {
+  localStorage.setItem("cs_coupon_code", code);
+  localStorage.setItem("cs_coupon_discount", discount);
+}
+function clearAppliedCoupon() {
+  localStorage.removeItem("cs_coupon_code");
+  localStorage.removeItem("cs_coupon_discount");
+}
+function cartDiscountAmount(subtotal) {
+  const coupon = getAppliedCoupon();
+  return coupon ? Math.round(subtotal * coupon.discount / 100) : 0;
+}
+async function applyCoupon() {
+  const input = document.getElementById("couponInput");
+  const statusEl = document.getElementById("couponStatus");
+  const code = (input?.value || "").trim();
+  if (!code || !statusEl) return;
+  if (typeof APPSCRIPT_URL === "undefined" || APPSCRIPT_URL.indexOf("PASTE_YOUR") === 0) return;
+
+  statusEl.textContent = "Checking…";
+  statusEl.className = "coupon-status";
+  try {
+    const res = await fetch(`${APPSCRIPT_URL}?action=coupon&code=${encodeURIComponent(code)}`);
+    const data = await res.json();
+    if (data.valid) {
+      setAppliedCoupon(data.code, data.discount);
+      statusEl.textContent = `Applied "${data.code}" — ${data.discount}% off`;
+      statusEl.className = "coupon-status ok";
+    } else {
+      clearAppliedCoupon();
+      statusEl.textContent = "Invalid coupon code";
+      statusEl.className = "coupon-status err";
+    }
+  } catch (e) {
+    statusEl.textContent = "Couldn't check coupon — try again";
+    statusEl.className = "coupon-status err";
+  }
+  renderCartDrawer();
 }
 
 /* ---------- FLY-TO-CART ANIMATION ---------- */
@@ -173,7 +219,24 @@ function renderCartDrawer() {
     if (pinInput && document.activeElement !== pinInput) pinInput.value = pin;
     if (phoneInput && document.activeElement !== phoneInput) phoneInput.value = phone;
     if (nameInput && document.activeElement !== nameInput) nameInput.value = name;
-    document.getElementById("cartTotal").textContent = "₹" + subtotal;
+
+    const coupon = getAppliedCoupon();
+    const discountAmt = cartDiscountAmount(subtotal);
+    const total = subtotal - discountAmt;
+
+    const couponInput = document.getElementById("couponInput");
+    if (couponInput && document.activeElement !== couponInput && coupon) couponInput.value = coupon.code;
+
+    document.getElementById("cartSubtotal").textContent = "₹" + subtotal;
+    const discountRow = document.getElementById("discountRow");
+    if (coupon && discountAmt > 0) {
+      if (discountRow) discountRow.style.display = "flex";
+      const discountEl = document.getElementById("cartDiscount");
+      if (discountEl) discountEl.textContent = `-₹${discountAmt} (${coupon.code})`;
+    } else if (discountRow) {
+      discountRow.style.display = "none";
+    }
+    document.getElementById("cartTotal").textContent = "₹" + total;
   }
 }
 
@@ -181,6 +244,9 @@ function renderCartDrawer() {
 function buildWhatsAppMessage() {
   const cart = readCart();
   const subtotal = cartTotal();
+  const coupon = getAppliedCoupon();
+  const discountAmt = cartDiscountAmount(subtotal);
+  const total = subtotal - discountAmt;
   const pin = localStorage.getItem("cs_pincode") || "";
   const phone = localStorage.getItem("cs_phone") || "";
   const name = localStorage.getItem("cs_name") || "";
@@ -192,7 +258,9 @@ function buildWhatsAppMessage() {
     const p = getProduct(id);
     if (p) lines.push(`• ${p.name} x${qty} — ₹${p.price * qty}`, `  ${location.origin}/product.html?id=${p.id}`);
   });
-  lines.push("", `Total: ₹${subtotal}`);
+  lines.push("", `Subtotal: ₹${subtotal}`);
+  if (coupon && discountAmt > 0) lines.push(`Coupon (${coupon.code}): -₹${discountAmt} (${coupon.discount}% off)`);
+  lines.push(`Total: ₹${total}`);
   if (pin) lines.push(`Delivery Pincode: ${pin}`);
   lines.push("Delivery charge to be added separately based on weight & size — please confirm total.");
   lines.push("", "Please confirm availability & delivery.");
@@ -209,12 +277,17 @@ function checkoutWhatsApp() {
   localStorage.setItem("cs_name", name);
   localStorage.setItem("cs_phone", phone);
 
+  const subtotal = cartTotal();
+  const coupon = getAppliedCoupon();
+  const discountAmt = cartDiscountAmount(subtotal);
+  const total = subtotal - discountAmt;
+
   const cart = readCart();
   const itemsForLog = Object.entries(cart).map(([id, qty]) => {
     const p = getProduct(id);
     return p ? { name: p.name, qty, price: p.price, imageId: p.imageId } : null;
   }).filter(Boolean);
-  logOrderToSheet(name, phone, localStorage.getItem("cs_pincode") || "", itemsForLog, cartTotal());
+  logOrderToSheet(name, phone, localStorage.getItem("cs_pincode") || "", itemsForLog, total, coupon ? coupon.code : "", discountAmt);
 
   const msg = encodeURIComponent(buildWhatsAppMessage());
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
@@ -231,7 +304,7 @@ function buyNowWhatsApp(id) {
   localStorage.setItem("cs_name", name);
   localStorage.setItem("cs_phone", phone);
 
-  logOrderToSheet(name, phone, localStorage.getItem("cs_pincode") || "", [{ name: p.name, qty: 1, price: p.price, imageId: p.imageId }], p.price);
+  logOrderToSheet(name, phone, localStorage.getItem("cs_pincode") || "", [{ name: p.name, qty: 1, price: p.price, imageId: p.imageId }], p.price, "", 0);
 
   const msg = encodeURIComponent(
     `Hi ChillScenes3D! I'd like to order:\n\nName: ${name}\nPhone: ${phone}\n• ${p.name} x1 — ₹${p.price}\n  ${location.origin}/product.html?id=${p.id}\n\nDelivery charge to be added separately based on weight & size — please confirm total.\n\nPlease confirm availability & delivery.`
@@ -258,6 +331,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("clearCartBtn")?.addEventListener("click", () => {
     if (cartCount() === 0) return;
     if (confirm("Clear all items from your cart?")) clearCart();
+  });
+  document.getElementById("applyCouponBtn")?.addEventListener("click", applyCoupon);
+  document.getElementById("couponInput")?.addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); applyCoupon(); }
   });
   document.getElementById("pincodeInput")?.addEventListener("input", e => {
     const val = e.target.value.replace(/\D/g, "").slice(0, 6);
