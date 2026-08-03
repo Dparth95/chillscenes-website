@@ -57,6 +57,7 @@ function renderFeatured() {
   const sortKey = document.getElementById("featuredSort")?.value || "newest";
   const items = sortProducts(PRODUCTS.filter(p => p.featured), sortKey);
   el.innerHTML = items.map(productCard).join("");
+  initReveal();
 }
 
 /* ---------- SHOP PAGE ---------- */

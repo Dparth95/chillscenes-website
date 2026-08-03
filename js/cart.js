@@ -4,40 +4,10 @@
    WHATSAPP NUMBER — change here if it ever changes
    ============================================================ */
 const WHATSAPP_NUMBER = "919810704170"; // country code 91 + number
-const FREE_DELIVERY_THRESHOLD = 2000;
-/* DEFAULT_DELIVERY now lives in products.js so admin.html can also see it */
 
-/* Approximate PIN prefix (first 2 digits) → state, for delivery estimate.
-   Refine any entries below if you find a mismatch. */
-const PINCODE_STATE = {
-  "11":"Delhi","12":"Haryana","13":"Haryana","14":"Punjab","15":"Punjab","16":"Punjab",
-  "17":"Himachal Pradesh","18":"Jammu and Kashmir","19":"Jammu and Kashmir",
-  "20":"Uttar Pradesh","21":"Uttar Pradesh","22":"Uttar Pradesh","23":"Uttar Pradesh",
-  "24":"Uttarakhand","25":"Uttar Pradesh","26":"Uttarakhand","27":"Uttar Pradesh","28":"Uttar Pradesh",
-  "30":"Rajasthan","31":"Rajasthan","32":"Rajasthan","33":"Rajasthan","34":"Rajasthan",
-  "36":"Gujarat","37":"Gujarat","38":"Gujarat","39":"Gujarat",
-  "40":"Maharashtra","41":"Maharashtra","42":"Maharashtra","43":"Maharashtra","44":"Maharashtra",
-  "45":"Madhya Pradesh","46":"Madhya Pradesh","47":"Madhya Pradesh","48":"Madhya Pradesh","49":"Chhattisgarh",
-  "50":"Telangana","51":"Andhra Pradesh","52":"Andhra Pradesh","53":"Andhra Pradesh",
-  "56":"Karnataka","57":"Karnataka","58":"Karnataka","59":"Karnataka",
-  "60":"Tamil Nadu","61":"Tamil Nadu","62":"Tamil Nadu","63":"Tamil Nadu","64":"Tamil Nadu","66":"Tamil Nadu",
-  "67":"Kerala","68":"Kerala","69":"Kerala",
-  "70":"West Bengal","71":"West Bengal","72":"West Bengal","73":"West Bengal","74":"West Bengal",
-  "75":"Odisha","76":"Odisha","77":"Odisha",
-  "78":"Assam","79":"North East",
-  "80":"Bihar","81":"Bihar","82":"Jharkhand","83":"Jharkhand","84":"Bihar","85":"Bihar"
-};
-
-function getStateFromPincode(pin) {
-  if (!/^\d{6}$/.test(pin)) return null;
-  return PINCODE_STATE[pin.slice(0, 2)] || null;
-}
-function getDeliveryCharge(pin, subtotal) {
-  if (subtotal >= FREE_DELIVERY_THRESHOLD) return 0;
-  const state = getStateFromPincode(pin);
-  if (!state) return null;
-  return DELIVERY_RATES[state] ?? DEFAULT_DELIVERY;
-}
+/* Delivery is NOT calculated automatically — it varies by weight & size
+   and gets added when the order is confirmed on WhatsApp. We still
+   capture the pincode (useful reference for whoever's confirming). */
 
 function readCart() {
   try { return JSON.parse(localStorage.getItem("cs_cart")) || {}; }
@@ -186,26 +156,7 @@ function renderCartDrawer() {
     const pin = localStorage.getItem("cs_pincode") || "";
     const pinInput = document.getElementById("pincodeInput");
     if (pinInput && document.activeElement !== pinInput) pinInput.value = pin;
-
-    document.getElementById("cartSubtotal").textContent = "₹" + subtotal;
-    const deliveryEl = document.getElementById("cartDelivery");
-    const totalEl = document.getElementById("cartTotal");
-
-    if (subtotal >= FREE_DELIVERY_THRESHOLD) {
-      deliveryEl.textContent = "FREE";
-      deliveryEl.classList.add("free");
-      totalEl.textContent = "₹" + subtotal;
-    } else {
-      const charge = getDeliveryCharge(pin, subtotal);
-      deliveryEl.classList.remove("free");
-      if (charge === null) {
-        deliveryEl.textContent = "Enter pincode";
-        totalEl.textContent = "₹" + subtotal + " + delivery";
-      } else {
-        deliveryEl.textContent = "₹" + charge;
-        totalEl.textContent = "₹" + (subtotal + charge);
-      }
-    }
+    document.getElementById("cartTotal").textContent = "₹" + subtotal;
   }
 }
 
@@ -219,21 +170,9 @@ function buildWhatsAppMessage() {
     const p = getProduct(id);
     if (p) lines.push(`• ${p.name} x${qty} — ₹${p.price * qty}`, `  ${location.origin}/product.html?id=${p.id}`);
   });
-  lines.push("", `Subtotal: ₹${subtotal}`);
-
-  if (subtotal >= FREE_DELIVERY_THRESHOLD) {
-    lines.push("Delivery: FREE");
-    lines.push(`Total: ₹${subtotal}`);
-  } else {
-    const charge = getDeliveryCharge(pin, subtotal);
-    if (charge !== null) {
-      lines.push(`Delivery (Pincode ${pin}): ₹${charge}`);
-      lines.push(`Total: ₹${subtotal + charge}`);
-    } else {
-      lines.push("Delivery: to be confirmed");
-      if (pin) lines.push(`Pincode: ${pin}`);
-    }
-  }
+  lines.push("", `Total: ₹${subtotal}`);
+  if (pin) lines.push(`Delivery Pincode: ${pin}`);
+  lines.push("Delivery charge to be added separately based on weight & size — please confirm total.");
   lines.push("", "Please confirm availability & delivery.");
   return lines.join("\n");
 }
@@ -245,9 +184,8 @@ function checkoutWhatsApp() {
 function buyNowWhatsApp(id) {
   const p = getProduct(id);
   if (!p) return;
-  const note = p.price >= FREE_DELIVERY_THRESHOLD ? "Delivery: FREE" : "Delivery charges apply";
   const msg = encodeURIComponent(
-    `Hi ChillScenes3D! I'd like to order:\n\n• ${p.name} x1 — ₹${p.price}\n  ${location.origin}/product.html?id=${p.id}\n\n${note}\n\nPlease confirm availability & delivery.`
+    `Hi ChillScenes3D! I'd like to order:\n\n• ${p.name} x1 — ₹${p.price}\n  ${location.origin}/product.html?id=${p.id}\n\nDelivery charge to be added separately based on weight & size — please confirm total.\n\nPlease confirm availability & delivery.`
   );
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
 }
