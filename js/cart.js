@@ -10,13 +10,13 @@ const WHATSAPP_NUMBER = "919810704170"; // country code 91 + number
    capture the pincode (useful reference for whoever's confirming). */
 
 /* Fires the order off to the Orders sheet — best-effort, never blocks
-   checkout on failure or slowness. */
-function logOrderToSheet(phone, pincode, itemsSummary, total) {
+   checkout on failure or slowness. items: [{name, qty, price, imageId}] */
+function logOrderToSheet(name, phone, pincode, items, total) {
   if (typeof APPSCRIPT_URL === "undefined" || APPSCRIPT_URL.indexOf("PASTE_YOUR") === 0) return;
   fetch(APPSCRIPT_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: "logOrder", phone, pincode, items: itemsSummary, total })
+    body: JSON.stringify({ action: "logOrder", name, phone, pincode, items, total })
   }).catch(() => {});
 }
 
@@ -166,10 +166,13 @@ function renderCartDrawer() {
     const subtotal = cartTotal();
     const pin = localStorage.getItem("cs_pincode") || "";
     const phone = localStorage.getItem("cs_phone") || "";
+    const name = localStorage.getItem("cs_name") || "";
     const pinInput = document.getElementById("pincodeInput");
     const phoneInput = document.getElementById("phoneInput");
+    const nameInput = document.getElementById("nameInput");
     if (pinInput && document.activeElement !== pinInput) pinInput.value = pin;
     if (phoneInput && document.activeElement !== phoneInput) phoneInput.value = phone;
+    if (nameInput && document.activeElement !== nameInput) nameInput.value = name;
     document.getElementById("cartTotal").textContent = "₹" + subtotal;
   }
 }
@@ -180,8 +183,11 @@ function buildWhatsAppMessage() {
   const subtotal = cartTotal();
   const pin = localStorage.getItem("cs_pincode") || "";
   const phone = localStorage.getItem("cs_phone") || "";
+  const name = localStorage.getItem("cs_name") || "";
   const lines = ["Hi ChillScenes3D! I'd like to order:", ""];
-  if (phone) lines.push(`Phone: ${phone}`, "");
+  if (name) lines.push(`Name: ${name}`);
+  if (phone) lines.push(`Phone: ${phone}`);
+  if (name || phone) lines.push("");
   Object.entries(cart).forEach(([id, qty]) => {
     const p = getProduct(id);
     if (p) lines.push(`• ${p.name} x${qty} — ₹${p.price * qty}`, `  ${location.origin}/product.html?id=${p.id}`);
@@ -194,17 +200,21 @@ function buildWhatsAppMessage() {
 }
 function checkoutWhatsApp() {
   if (cartCount() === 0) return;
+  const nameInput = document.getElementById("nameInput");
   const phoneInput = document.getElementById("phoneInput");
+  const name = (nameInput?.value || "").trim();
   const phone = (phoneInput?.value || "").trim();
+  if (!name) { alert("Please enter your name before checkout."); nameInput?.focus(); return; }
   if (!phone) { alert("Please enter your phone number before checkout."); phoneInput?.focus(); return; }
+  localStorage.setItem("cs_name", name);
   localStorage.setItem("cs_phone", phone);
 
   const cart = readCart();
-  const itemsSummary = Object.entries(cart).map(([id, qty]) => {
+  const itemsForLog = Object.entries(cart).map(([id, qty]) => {
     const p = getProduct(id);
-    return p ? `${p.name} x${qty} (₹${p.price * qty})` : "";
-  }).filter(Boolean).join("; ");
-  logOrderToSheet(phone, localStorage.getItem("cs_pincode") || "", itemsSummary, cartTotal());
+    return p ? { name: p.name, qty, price: p.price, imageId: p.imageId } : null;
+  }).filter(Boolean);
+  logOrderToSheet(name, phone, localStorage.getItem("cs_pincode") || "", itemsForLog, cartTotal());
 
   const msg = encodeURIComponent(buildWhatsAppMessage());
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
@@ -212,15 +222,19 @@ function checkoutWhatsApp() {
 function buyNowWhatsApp(id) {
   const p = getProduct(id);
   if (!p) return;
+  const nameEl = document.getElementById("pdpName");
   const phoneEl = document.getElementById("pdpPhone");
+  const name = (nameEl?.value || localStorage.getItem("cs_name") || "").trim();
   const phone = (phoneEl?.value || localStorage.getItem("cs_phone") || "").trim();
+  if (!name) { alert("Please enter your name before ordering."); nameEl?.focus(); return; }
   if (!phone) { alert("Please enter your phone number before ordering."); phoneEl?.focus(); return; }
+  localStorage.setItem("cs_name", name);
   localStorage.setItem("cs_phone", phone);
 
-  logOrderToSheet(phone, localStorage.getItem("cs_pincode") || "", `${p.name} x1 (₹${p.price})`, p.price);
+  logOrderToSheet(name, phone, localStorage.getItem("cs_pincode") || "", [{ name: p.name, qty: 1, price: p.price, imageId: p.imageId }], p.price);
 
   const msg = encodeURIComponent(
-    `Hi ChillScenes3D! I'd like to order:\n\nPhone: ${phone}\n• ${p.name} x1 — ₹${p.price}\n  ${location.origin}/product.html?id=${p.id}\n\nDelivery charge to be added separately based on weight & size — please confirm total.\n\nPlease confirm availability & delivery.`
+    `Hi ChillScenes3D! I'd like to order:\n\nName: ${name}\nPhone: ${phone}\n• ${p.name} x1 — ₹${p.price}\n  ${location.origin}/product.html?id=${p.id}\n\nDelivery charge to be added separately based on weight & size — please confirm total.\n\nPlease confirm availability & delivery.`
   );
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
 }
@@ -253,6 +267,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("phoneInput")?.addEventListener("input", e => {
     localStorage.setItem("cs_phone", e.target.value.trim());
+  });
+  document.getElementById("nameInput")?.addEventListener("input", e => {
+    localStorage.setItem("cs_name", e.target.value.trim());
   });
 });
 document.addEventListener("catalog:updated", () => { pruneCart(); renderCartDrawer(); });
