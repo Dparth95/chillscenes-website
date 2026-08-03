@@ -105,19 +105,11 @@
   </div>
   <div class="cart-body" id="cartBody"></div>
   <div class="cart-footer" id="cartFooter">
-    <div class="pincode-row">
-      <label for="nameInput">Name</label>
-      <input type="text" id="nameInput" placeholder="Your name">
+    <div class="compact-fields">
+      <input type="text" id="nameInput" placeholder="Name">
+      <input type="tel" id="phoneInput" placeholder="Phone number" inputmode="tel">
+      <input type="text" id="pincodeInput" placeholder="Delivery pincode" inputmode="numeric" maxlength="6">
     </div>
-    <div class="pincode-row">
-      <label for="phoneInput">Phone Number</label>
-      <input type="tel" id="phoneInput" placeholder="Your phone number" inputmode="tel">
-    </div>
-    <div class="pincode-row">
-      <label for="pincodeInput">Delivery Pincode</label>
-      <input type="text" id="pincodeInput" placeholder="Enter 6-digit pincode" inputmode="numeric" maxlength="6">
-    </div>
-    <p class="delivery-note">Delivery charges will be added separately based on the weight &amp; size of your order — we'll confirm the total on WhatsApp.</p>
     <div class="coupon-row">
       <input type="text" id="couponInput" placeholder="Coupon code">
       <button type="button" class="btn btn-outline btn-sm" id="applyCouponBtn">Apply</button>
