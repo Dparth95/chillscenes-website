@@ -184,12 +184,13 @@ nav{
 }
 .carousel-arrow{
   position:absolute; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:50%;
-  background:var(--ink2); border:1px solid var(--border); color:var(--cream); z-index:5; transition:.2s;
+  background:var(--ink2); border:1px solid var(--border); color:var(--cream); z-index:20; transition:.2s;
+  box-shadow:0 8px 20px rgba(0,0,0,.35); cursor:pointer;
 }
 .carousel-arrow:hover{border-color:rgba(255,122,41,.4); color:var(--orange);}
-.carousel-arrow.left{left:-22px;}
-.carousel-arrow.right{right:-22px;}
-@media(max-width:1300px){
+.carousel-arrow.left{left:8px;}
+.carousel-arrow.right{right:8px;}
+@media(max-width:640px){
   .carousel-arrow{display:none;}
 }
 .product-card{
