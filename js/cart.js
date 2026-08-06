@@ -85,19 +85,22 @@ function updateCartCount() {
   });
 }
 
-/* ---------- COUPON ---------- */
+/* ---------- COUPON ----------
+   Session-only (in-memory), never saved to localStorage — a coupon should
+   never silently reapply to a future order without being typed in again. */
+let appliedCoupon = null;
 function getAppliedCoupon() {
-  const code = localStorage.getItem("cs_coupon_code") || "";
-  const discount = Number(localStorage.getItem("cs_coupon_discount") || 0);
-  return code ? { code, discount } : null;
+  return appliedCoupon;
 }
 function setAppliedCoupon(code, discount) {
-  localStorage.setItem("cs_coupon_code", code);
-  localStorage.setItem("cs_coupon_discount", discount);
+  appliedCoupon = { code, discount };
 }
 function clearAppliedCoupon() {
-  localStorage.removeItem("cs_coupon_code");
-  localStorage.removeItem("cs_coupon_discount");
+  appliedCoupon = null;
+  const input = document.getElementById("couponInput");
+  const statusEl = document.getElementById("couponStatus");
+  if (input) input.value = "";
+  if (statusEl) { statusEl.textContent = ""; statusEl.className = "coupon-status"; }
 }
 function cartDiscountAmount(subtotal) {
   const coupon = getAppliedCoupon();
@@ -117,10 +120,15 @@ async function applyCoupon() {
     const data = await res.json();
     if (data.valid) {
       setAppliedCoupon(data.code, data.discount);
-      statusEl.textContent = `Applied "${data.code}" — ${data.discount}% off`;
+      statusEl.innerHTML = `Applied "${data.code}" — ${data.discount}% off &nbsp;<a href="#" id="removeCouponLink" class="coupon-remove-link">Remove</a>`;
       statusEl.className = "coupon-status ok";
+      document.getElementById("removeCouponLink")?.addEventListener("click", e => {
+        e.preventDefault();
+        clearAppliedCoupon();
+        renderCartDrawer();
+      });
     } else {
-      clearAppliedCoupon();
+      appliedCoupon = null;
       statusEl.textContent = "Invalid coupon code";
       statusEl.className = "coupon-status err";
     }
