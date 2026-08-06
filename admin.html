@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Add Product | ChillScenes3D</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 <style>
@@ -184,6 +184,11 @@
 <div class="status-bar" id="statusBar">
   <i class="fa-solid fa-circle-notch fa-spin"></i>
   <span id="statusText">Loading…</span>
+</div>
+
+<div class="status-bar ok" style="margin-bottom:34px;">
+  <i class="fa-solid fa-eye"></i>
+  <span>Total site views: <strong id="viewCount">—</strong></span>
 </div>
 
 <fieldset id="formArea">
@@ -754,6 +759,10 @@ async function fetchAdminCatalog() {
     await fetchCoupons();
     renderCouponsList();
     renderManageProducts();
+    fetch(`${APPSCRIPT_URL}?action=viewCount`).then(r => r.json()).then(d => {
+      const el = document.getElementById("viewCount");
+      if (el) el.textContent = typeof d.count === "number" ? d.count.toLocaleString() : "—";
+    }).catch(() => {});
     const n = await loadImageList();
     setStatus("ok", `Ready — ${n} photo(s) found.`);
     formArea.classList.add("enabled");
