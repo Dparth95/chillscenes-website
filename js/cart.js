@@ -312,13 +312,20 @@ function buyNowWhatsApp(id) {
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
 }
 
+let scrollLockY = 0;
 function openCart() {
   document.getElementById("cartDrawer")?.classList.add("active");
   document.getElementById("cartOverlay")?.classList.add("active");
+  scrollLockY = window.scrollY;
+  document.body.style.top = -scrollLockY + "px";
+  document.body.classList.add("scroll-locked");
 }
 function closeCart() {
   document.getElementById("cartDrawer")?.classList.remove("active");
   document.getElementById("cartOverlay")?.classList.remove("active");
+  document.body.classList.remove("scroll-locked");
+  document.body.style.top = "";
+  window.scrollTo(0, scrollLockY);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
