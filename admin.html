@@ -286,7 +286,13 @@
 
       <div class="field">
         <label>Description</label>
-        <textarea id="pDesc" placeholder="Short description shown on the product page"></textarea>
+        <select id="pDescPreset" style="margin-bottom:8px;">
+          <option value="">— Common description (optional) —</option>
+          <option value="Color Can Be Customized">Color Can Be Customized</option>
+          <option value="Any one. Color can be customised">Any one. Color can be customised</option>
+          <option value="Size &amp; Color can be customised">Size &amp; Color can be customised</option>
+        </select>
+        <textarea id="pDesc" placeholder="Short description shown on the product page — pick a common one above, or type your own"></textarea>
       </div>
 
       <div class="checkbox-row">
@@ -349,6 +355,11 @@ emojiGrid.querySelectorAll("button").forEach(btn => {
 });
 catIconInput.addEventListener("input", () => {
   emojiGrid.querySelectorAll("button").forEach(b => b.classList.toggle("selected", b.dataset.emoji === catIconInput.value.trim()));
+});
+
+document.getElementById("pDescPreset")?.addEventListener("change", e => {
+  if (e.target.value) document.getElementById("pDesc").value = e.target.value;
+  e.target.value = ""; // reset dropdown so it's ready to pick again, textarea stays editable
 });
 
 function renderCategoryList() {
