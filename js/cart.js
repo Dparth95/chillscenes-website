@@ -1,6 +1,6 @@
 /* ============================================================
    CART — stored in localStorage under key "cs_cart"
-   Shape: { "product-id": qty, ... }
+   Shape: { "productId::variant": qty, ... }  (variant = "basic" | "premium")
    WHATSAPP NUMBER — change here if it ever changes
    ============================================================ */
 const WHATSAPP_NUMBER = "919810704170"; // country code 91 + number
@@ -8,6 +8,21 @@ const WHATSAPP_NUMBER = "919810704170"; // country code 91 + number
 /* Delivery is NOT calculated automatically — it varies by weight & size
    and gets added when the order is confirmed on WhatsApp. We still
    capture the pincode (useful reference for whoever's confirming). */
+
+/* ---------- CART KEY HELPERS (product + variant) ---------- */
+function makeCartKey(productId, variant) {
+  return `${productId}::${variant}`;
+}
+function parseCartKey(key) {
+  const idx = key.lastIndexOf("::");
+  return { productId: key.slice(0, idx), variant: key.slice(idx + 2) };
+}
+function getCartLineInfo(key) {
+  const { productId, variant } = parseCartKey(key);
+  const p = getProduct(productId);
+  if (!p) return null;
+  return { product: p, variant: variant, price: getVariantPrice(p.price, variant) };
+}
 
 /* Fires the order off to the Orders sheet — best-effort, never blocks
    checkout on failure or slowness. items: [{name, qty, price, imageId}] */
@@ -32,8 +47,8 @@ function pruneCart() {
   if (!PRODUCTS.length) return; // catalog not loaded yet — don't wipe a valid cart
   const cart = readCart();
   let changed = false;
-  Object.keys(cart).forEach(id => {
-    if (!getProduct(id)) { delete cart[id]; changed = true; }
+  Object.keys(cart).forEach(key => {
+    if (!getCartLineInfo(key)) { delete cart[key]; changed = true; }
   });
   if (changed) writeCart(cart);
 }
@@ -42,28 +57,29 @@ function clearCart() {
   updateCartCount();
   renderCartDrawer();
 }
-function addToCart(id, qty = 1, sourceImgEl = null) {
+function addToCart(id, qty = 1, sourceImgEl = null, variant = "basic") {
   const cart = readCart();
-  cart[id] = (cart[id] || 0) + qty;
+  const key = makeCartKey(id, variant);
+  cart[key] = (cart[key] || 0) + qty;
   writeCart(cart);
   renderCartDrawer();
   flyToCart(sourceImgEl);
 }
-function handleAddToCart(evt, id, qty = 1) {
+function handleAddToCart(evt, id, qty = 1, variant = "basic") {
   const scope = evt.target.closest(".product-card, .pdp");
   const img = scope ? scope.querySelector("img") : null;
-  addToCart(id, qty, img);
+  addToCart(id, qty, img, variant);
 }
-function setQty(id, qty) {
+function setQty(key, qty) {
   const cart = readCart();
-  if (qty <= 0) delete cart[id];
-  else cart[id] = qty;
+  if (qty <= 0) delete cart[key];
+  else cart[key] = qty;
   writeCart(cart);
   renderCartDrawer();
 }
-function removeFromCart(id) {
+function removeFromCart(key) {
   const cart = readCart();
-  delete cart[id];
+  delete cart[key];
   writeCart(cart);
   renderCartDrawer();
 }
@@ -72,9 +88,9 @@ function cartCount() {
 }
 function cartTotal() {
   const cart = readCart();
-  return Object.entries(cart).reduce((sum, [id, qty]) => {
-    const p = getProduct(id);
-    return p ? sum + p.price * qty : sum;
+  return Object.entries(cart).reduce((sum, [key, qty]) => {
+    const line = getCartLineInfo(key);
+    return line ? sum + line.price * qty : sum;
   }, 0);
 }
 function updateCartCount() {
@@ -84,6 +100,52 @@ function updateCartCount() {
     el.style.display = n > 0 ? "flex" : "none";
   });
 }
+
+/* ---------- VARIANT PICKER POPUP (used by product cards) ---------- */
+let variantPickerProductId = null;
+function openVariantPicker(productId, btnEl) {
+  const p = getProduct(productId);
+  const popup = document.getElementById("variantPickerPopup");
+  if (!p || !popup) return;
+  variantPickerProductId = productId;
+
+  const basicPrice = p.price;
+  const premiumPrice = getVariantPrice(p.price, "premium");
+  popup.innerHTML = `
+    <div class="variant-picker-title">Choose quality</div>
+    <button type="button" class="variant-option" data-variant="basic">
+      <span>${VARIANT_INFO.basic.label}</span><span class="variant-price">₹${basicPrice}</span>
+    </button>
+    <button type="button" class="variant-option" data-variant="premium">
+      <span>${VARIANT_INFO.premium.label}</span><span class="variant-price">₹${premiumPrice}</span>
+    </button>`;
+
+  popup.querySelectorAll(".variant-option").forEach(opt => {
+    opt.addEventListener("click", () => {
+      const variant = opt.dataset.variant;
+      const card = btnEl.closest(".product-card");
+      const img = card ? card.querySelector("img") : null;
+      closeVariantPicker();
+      addToCart(productId, 1, img, variant);
+    });
+  });
+
+  const rect = btnEl.getBoundingClientRect();
+  const popupWidth = 190;
+  popup.style.top = (rect.bottom + window.scrollY + 6) + "px";
+  popup.style.left = Math.min(rect.left, window.innerWidth - popupWidth - 12) + "px";
+  popup.classList.add("open");
+}
+function closeVariantPicker() {
+  document.getElementById("variantPickerPopup")?.classList.remove("open");
+  variantPickerProductId = null;
+}
+document.addEventListener("click", e => {
+  const popup = document.getElementById("variantPickerPopup");
+  if (!popup) return;
+  if (e.target.closest(".add-to-cart-btn")) return;
+  if (popup.classList.contains("open") && !popup.contains(e.target)) closeVariantPicker();
+});
 
 /* ---------- COUPON ----------
    Session-only (in-memory), never saved to localStorage — a coupon should
@@ -185,31 +247,33 @@ function renderCartDrawer() {
   const footer = document.getElementById("cartFooter");
   if (!body) return;
   const cart = readCart();
-  const ids = Object.keys(cart);
+  const keys = Object.keys(cart);
 
-  if (ids.length === 0) {
+  if (keys.length === 0) {
     body.innerHTML = `<div class="cart-empty">Your cart is empty.<br><a href="shop.html">Browse products →</a></div>`;
     if (footer) footer.style.display = "none";
     return;
   }
 
-  body.innerHTML = ids.map(id => {
-    const p = getProduct(id);
-    if (!p) return "";
-    const qty = cart[id];
+  body.innerHTML = keys.map(key => {
+    const line = getCartLineInfo(key);
+    if (!line) return "";
+    const qty = cart[key];
+    const p = line.product;
+    const variantLabel = VARIANT_INFO[line.variant]?.label || "Basic";
     return `
       <div class="cart-item">
         <img src="${p.image}" alt="${p.name}">
         <div class="cart-item-info">
-          <h4>${p.name}</h4>
-          <span class="cart-item-price">₹${p.price}</span>
+          <h4>${p.name} <span class="cart-item-variant">${variantLabel}</span></h4>
+          <span class="cart-item-price">₹${line.price}</span>
           <div class="qty-control">
-            <button onclick="setQty('${id}', ${qty - 1})">−</button>
+            <button onclick="setQty('${key}', ${qty - 1})">−</button>
             <span>${qty}</span>
-            <button onclick="setQty('${id}', ${qty + 1})">+</button>
+            <button onclick="setQty('${key}', ${qty + 1})">+</button>
           </div>
         </div>
-        <button class="cart-item-remove" onclick="removeFromCart('${id}')" aria-label="Remove">
+        <button class="cart-item-remove" onclick="removeFromCart('${key}')" aria-label="Remove">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>`;
@@ -262,9 +326,11 @@ function buildWhatsAppMessage() {
   if (name) lines.push(`Name: ${name}`);
   if (phone) lines.push(`Phone: ${phone}`);
   if (name || phone) lines.push("");
-  Object.entries(cart).forEach(([id, qty]) => {
-    const p = getProduct(id);
-    if (p) lines.push(`• ${p.name} x${qty} — ₹${p.price * qty}`, `  ${location.origin}/product.html?id=${p.id}`);
+  Object.entries(cart).forEach(([key, qty]) => {
+    const line = getCartLineInfo(key);
+    if (!line) return;
+    const variantLabel = VARIANT_INFO[line.variant]?.label || "Basic";
+    lines.push(`• ${line.product.name} (${variantLabel}) x${qty} — ₹${line.price * qty}`, `  ${location.origin}/product.html?id=${line.product.id}`);
   });
   lines.push("", `Subtotal: ₹${subtotal}`);
   if (coupon && discountAmt > 0) lines.push(`Coupon (${coupon.code}): -₹${discountAmt} (${coupon.discount}% off)`);
@@ -291,18 +357,22 @@ function checkoutWhatsApp() {
   const total = subtotal - discountAmt;
 
   const cart = readCart();
-  const itemsForLog = Object.entries(cart).map(([id, qty]) => {
-    const p = getProduct(id);
-    return p ? { name: p.name, qty, price: p.price, imageId: p.imageId } : null;
+  const itemsForLog = Object.entries(cart).map(([key, qty]) => {
+    const line = getCartLineInfo(key);
+    if (!line) return null;
+    const variantLabel = VARIANT_INFO[line.variant]?.label || "Basic";
+    return { name: `${line.product.name} (${variantLabel})`, qty, price: line.price, imageId: line.product.imageId };
   }).filter(Boolean);
   logOrderToSheet(name, phone, localStorage.getItem("cs_pincode") || "", itemsForLog, total, coupon ? coupon.code : "", discountAmt);
 
   const msg = encodeURIComponent(buildWhatsAppMessage());
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
 }
-function buyNowWhatsApp(id) {
+function buyNowWhatsApp(id, variant = "basic") {
   const p = getProduct(id);
   if (!p) return;
+  const price = getVariantPrice(p.price, variant);
+  const variantLabel = VARIANT_INFO[variant]?.label || "Basic";
   const nameEl = document.getElementById("pdpName");
   const phoneEl = document.getElementById("pdpPhone");
   const name = (nameEl?.value || localStorage.getItem("cs_name") || "").trim();
@@ -312,10 +382,10 @@ function buyNowWhatsApp(id) {
   localStorage.setItem("cs_name", name);
   localStorage.setItem("cs_phone", phone);
 
-  logOrderToSheet(name, phone, localStorage.getItem("cs_pincode") || "", [{ name: p.name, qty: 1, price: p.price, imageId: p.imageId }], p.price, "", 0);
+  logOrderToSheet(name, phone, localStorage.getItem("cs_pincode") || "", [{ name: `${p.name} (${variantLabel})`, qty: 1, price: price, imageId: p.imageId }], price, "", 0);
 
   const msg = encodeURIComponent(
-    `Hi ChillScenes3D! I'd like to order:\n\nName: ${name}\nPhone: ${phone}\n• ${p.name} x1 — ₹${p.price}\n  ${location.origin}/product.html?id=${p.id}\n\nDelivery charge to be added separately based on weight & size — please confirm total.\n\nPlease confirm availability & delivery.`
+    `Hi ChillScenes3D! I'd like to order:\n\nName: ${name}\nPhone: ${phone}\n• ${p.name} (${variantLabel}) x1 — ₹${price}\n  ${location.origin}/product.html?id=${p.id}\n\nDelivery charge to be added separately based on weight & size — please confirm total.\n\nPlease confirm availability & delivery.`
   );
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
 }

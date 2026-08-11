@@ -12,7 +12,7 @@ function productCard(p) {
         <h3><a href="product.html?id=${p.id}">${p.name}</a></h3>
         <div class="product-price">₹${p.price}</div>
         <div class="product-actions">
-          <button class="btn btn-outline" onclick="handleAddToCart(event, '${p.id}')">Add to Cart</button>
+          <button class="btn btn-outline add-to-cart-btn" data-id="${p.id}" onclick="openVariantPicker('${p.id}', this)">Add to Cart</button>
         </div>
       </div>
     </div>`;
@@ -142,7 +142,12 @@ function renderProductDetail() {
         <a href="index.html">Home</a>${catLinks ? " / " + catLinks : ""}
       </div>
       <h1>${p.name}</h1>
-      <div class="pdp-price">₹${p.price}</div>
+      <div class="pdp-price" id="pdpPrice">₹${p.price}</div>
+      <div class="variant-tabs">
+        <button type="button" class="variant-tab active" data-variant="basic">Basic</button>
+        <button type="button" class="variant-tab" data-variant="premium">Premium</button>
+      </div>
+      <p class="variant-desc" id="pdpVariantDesc">${VARIANT_INFO.basic.desc}</p>
       <p class="desc">${p.desc}</p>
       <div class="pdp-qty">
         <div class="qty-control">
@@ -168,10 +173,19 @@ function renderProductDetail() {
     </div>`;
 
   let qty = 1;
+  let selectedVariant = "basic";
   document.getElementById("qtyMinus").onclick = () => { qty = Math.max(1, qty - 1); document.getElementById("qtyVal").textContent = qty; };
   document.getElementById("qtyPlus").onclick = () => { qty += 1; document.getElementById("qtyVal").textContent = qty; };
-  document.getElementById("pdpAddCart").onclick = (e) => handleAddToCart(e, p.id, qty);
-  document.getElementById("pdpBuyNow").onclick = () => buyNowWhatsApp(p.id);
+  document.getElementById("pdpAddCart").onclick = (e) => handleAddToCart(e, p.id, qty, selectedVariant);
+  document.getElementById("pdpBuyNow").onclick = () => buyNowWhatsApp(p.id, selectedVariant);
+  wrap.querySelectorAll(".variant-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      selectedVariant = tab.dataset.variant;
+      wrap.querySelectorAll(".variant-tab").forEach(t => t.classList.toggle("active", t === tab));
+      document.getElementById("pdpPrice").textContent = "₹" + getVariantPrice(p.price, selectedVariant);
+      document.getElementById("pdpVariantDesc").textContent = VARIANT_INFO[selectedVariant].desc;
+    });
+  });
   document.getElementById("pdpPhone")?.addEventListener("input", e => {
     localStorage.setItem("cs_phone", e.target.value.trim());
   });
@@ -286,9 +300,17 @@ function renderAll() {
   initReveal();
 }
 
+function getDeviceId() {
+  let id = localStorage.getItem("cs_device_id");
+  if (!id) {
+    id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ("d-" + Date.now() + "-" + Math.random().toString(36).slice(2));
+    localStorage.setItem("cs_device_id", id);
+  }
+  return id;
+}
 function trackSiteView() {
   if (typeof APPSCRIPT_URL === "undefined" || APPSCRIPT_URL.indexOf("PASTE_YOUR") === 0) return;
-  fetch(`${APPSCRIPT_URL}?action=trackView`).catch(() => {});
+  fetch(`${APPSCRIPT_URL}?action=trackView&deviceId=${encodeURIComponent(getDeviceId())}`).catch(() => {});
 }
 
 document.addEventListener("DOMContentLoaded", () => {

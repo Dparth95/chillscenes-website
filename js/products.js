@@ -21,6 +21,19 @@ const ALL_STATES = [
 
 const CATALOG_CACHE_KEY = "cs_catalog_cache";
 
+/* ---------- PRODUCT VARIANTS (Basic / Premium) ----------
+   Premium price is calculated on the frontend — never stored per-product.
+   Basic = the price from the sheet, lightweight infill.
+   Premium = 25% more, higher infill density & sturdier weight. */
+const PREMIUM_MULTIPLIER = 1.25;
+const VARIANT_INFO = {
+  basic: { label: "Basic", desc: "Standard quality print — lightweight infill, great for everyday use." },
+  premium: { label: "Premium", desc: "Premium quality print — higher infill density, sturdier and heavier build." }
+};
+function getVariantPrice(basePrice, variant) {
+  return variant === "premium" ? Math.round(basePrice * PREMIUM_MULTIPLIER) : basePrice;
+}
+
 function applyCatalog(data) {
   CATEGORIES.length = 0; CATEGORIES.push(...(data.categories || []));
   PRODUCTS.length = 0; PRODUCTS.push(...(data.products || []));
