@@ -249,6 +249,33 @@ nav{
 .pdp-actions .btn{flex:1;}
 .related{margin-top:100px;}
 
+/* ---------- PRODUCT VARIANTS (Basic / Premium) ---------- */
+.variant-picker-popup{
+  position:absolute; display:none; background:var(--card); border:1px solid var(--border);
+  border-radius:14px; padding:10px; z-index:600; width:190px; box-shadow:0 20px 45px rgba(43,38,32,.16);
+}
+.variant-picker-popup.open{display:block;}
+.variant-picker-title{font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--gray); padding:4px 6px 8px;}
+.variant-option{
+  display:flex; justify-content:space-between; align-items:center; width:100%; padding:10px 10px;
+  border-radius:10px; background:none; border:none; font-size:.88rem; color:var(--cream); transition:.15s;
+}
+.variant-option:hover{background:rgba(193,105,74,.08); color:var(--orange);}
+.variant-option .variant-price{color:var(--orange); font-weight:600;}
+
+.variant-tabs{display:flex; gap:8px; margin-bottom:14px;}
+.variant-tab{
+  padding:9px 20px; border-radius:999px; border:1px solid var(--border); background:var(--card);
+  color:var(--gray); font-size:.86rem; font-weight:600; transition:.2s;
+}
+.variant-tab.active{background:var(--orange); border-color:var(--orange); color:#fff;}
+.variant-tab:not(.active):hover{border-color:rgba(193,105,74,.4); color:var(--cream);}
+.variant-desc{color:var(--gray); font-size:.88rem; margin-bottom:20px; line-height:1.6;}
+.cart-item-variant{
+  font-size:.68rem; font-weight:600; color:var(--orange); background:rgba(193,105,74,.1);
+  padding:2px 8px; border-radius:999px; margin-left:6px; vertical-align:middle;
+}
+
 /* ---------- CART DRAWER ---------- */
 .cart-overlay{
   position:fixed; inset:0; background:rgba(30,24,18,.45); opacity:0; visibility:hidden;
