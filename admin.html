@@ -74,6 +74,25 @@
     color:var(--gray); font-size:.9rem;
   }
   .batch-remove:hover{color:#c0453a;}
+  .bill-item-row{display:flex; gap:8px; align-items:center; margin-bottom:8px;}
+  .bill-item-row input{
+    padding:9px 11px; border-radius:8px; background:var(--ink2); border:1px solid var(--border);
+    color:var(--cream); font-family:inherit; font-size:.85rem; min-width:0;
+  }
+  .bill-item-name{flex:3;}
+  .bill-item-qty{flex:0 0 62px;}
+  .bill-item-price{flex:0 0 90px;}
+  .bill-item-remove{
+    flex-shrink:0; width:30px; height:30px; border-radius:8px; background:none; border:none;
+    color:var(--gray); font-size:.85rem;
+  }
+  .bill-item-remove:hover{color:#c0453a;}
+  .bill-item-synced{font-size:.62rem; color:var(--teal); flex-shrink:0; width:16px; text-align:center;}
+  .bill-total-preview{
+    display:flex; justify-content:space-between; align-items:center; padding:14px 0 0;
+    border-top:1px solid var(--border); margin-top:16px; font-size:1.05rem;
+  }
+  .bill-total-preview strong{color:var(--orange); font-size:1.2rem;}
   .helper{font-size:.78rem; color:var(--gray); margin-top:24px; line-height:1.7;}
   .helper a{color:var(--orange);}
   .refresh-row{display:flex; justify-content:space-between; align-items:center; margin-top:12px;}
@@ -223,6 +242,50 @@
     </div>
     <p style="color:var(--gray); font-size:.78rem; margin-bottom:10px;">Visits by device (top 30, anonymous):</p>
     <div id="deviceList"></div>
+  </div>
+</details>
+
+<details class="panel" style="margin-bottom:34px;">
+  <summary><i class="fa-solid fa-file-invoice icon"></i> Create Bill <i class="fa-solid fa-chevron-down chev"></i></summary>
+  <div class="details-body">
+    <div class="field">
+      <label>Load an existing order <span style="color:var(--gray); font-weight:400;">(website orders only — for a walk-in / new client, leave as "New client")</span></label>
+      <select id="billOrderSelect"><option value="">— New client / manual bill —</option></select>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Customer Name</label>
+        <input type="text" id="billName" placeholder="Customer name">
+      </div>
+      <div class="field">
+        <label>Phone</label>
+        <input type="tel" id="billPhone" placeholder="Phone number">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Items</label>
+      <div id="billItems"></div>
+      <button type="button" class="btn btn-outline btn-sm" id="billAddItemBtn" style="margin-top:10px;">+ Add item</button>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Delivery Charge (₹)</label>
+        <input type="number" id="billDelivery" placeholder="0" min="0" value="0">
+      </div>
+      <div class="field">
+        <label>Discount (₹)</label>
+        <input type="number" id="billDiscount" placeholder="0" min="0" value="0">
+      </div>
+    </div>
+
+    <div class="bill-total-preview">
+      <span>Total</span><strong id="billTotalPreview">₹0</strong>
+    </div>
+
+    <button class="btn btn-block" id="generateBillBtn" style="margin-top:14px;">Generate Bill</button>
   </div>
 </details>
 
@@ -522,6 +585,272 @@ document.getElementById("addCouponBtn").addEventListener("click", async () => {
     setStatus("err", "Failed: " + err.message);
   }
 });
+
+/* ---------- BILLING ---------- */
+let ORDERS = [];
+let billItems = []; // {name, qty, unitPrice, row?}  row = sheet row if it came from an order
+
+async function fetchOrders() {
+  try {
+    const res = await fetch(`${APPSCRIPT_URL}?action=orders`);
+    const data = await res.json();
+    ORDERS = data.orders || [];
+    const sel = document.getElementById("billOrderSelect");
+    sel.innerHTML = `<option value="">— New client / manual bill —</option>` + ORDERS.map((o, i) => {
+      const d = o.date ? new Date(o.date).toLocaleDateString() : "";
+      return `<option value="${i}">${d} — ${o.name || "Unnamed"} (${o.phone || "no phone"})</option>`;
+    }).join("");
+  } catch (err) {
+    // non-critical
+  }
+}
+
+function renderBillItems() {
+  const el = document.getElementById("billItems");
+  el.innerHTML = billItems.map((it, i) => `
+    <div class="bill-item-row" data-i="${i}">
+      <input type="text" class="bill-item-name" data-i="${i}" placeholder="Item name" value="${(it.name || "").replace(/"/g, "&quot;")}">
+      <input type="number" class="bill-item-qty" data-i="${i}" placeholder="Qty" min="1" value="${it.qty}">
+      <input type="number" class="bill-item-price" data-i="${i}" placeholder="₹ each" min="0" value="${it.unitPrice}">
+      <span class="bill-item-synced" title="${it.row ? "Price change saves to the Orders sheet" : ""}">${it.row ? "↻" : ""}</span>
+      <button type="button" class="bill-item-remove" data-i="${i}" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+    </div>`).join("") || `<p style="color:var(--gray); font-size:.82rem;">No items yet — load an order above or add items manually.</p>`;
+
+  el.querySelectorAll(".bill-item-name").forEach(inp => {
+    inp.addEventListener("input", () => { billItems[inp.dataset.i].name = inp.value; });
+  });
+  el.querySelectorAll(".bill-item-qty").forEach(inp => {
+    inp.addEventListener("input", () => { billItems[inp.dataset.i].qty = Number(inp.value) || 0; updateBillTotal(); });
+  });
+  el.querySelectorAll(".bill-item-price").forEach(inp => {
+    inp.addEventListener("input", () => { billItems[inp.dataset.i].unitPrice = Number(inp.value) || 0; updateBillTotal(); });
+    // Write price changes back to the Orders sheet, but only for items that came from one
+    inp.addEventListener("change", async () => {
+      const item = billItems[inp.dataset.i];
+      if (!item.row) return;
+      try {
+        await postToScript({ action: "updateOrderItem", row: item.row, unitPrice: item.unitPrice });
+        setStatus("ok", `Price updated in Orders sheet for "${item.name}".`);
+      } catch (err) {
+        setStatus("err", "Couldn't update sheet: " + err.message);
+      }
+    });
+  });
+  el.querySelectorAll(".bill-item-remove").forEach(btn => {
+    btn.addEventListener("click", () => { billItems.splice(btn.dataset.i, 1); renderBillItems(); updateBillTotal(); });
+  });
+  updateBillTotal();
+}
+
+function billSubtotal() {
+  return billItems.reduce((s, it) => s + (Number(it.unitPrice) || 0) * (Number(it.qty) || 0), 0);
+}
+function updateBillTotal() {
+  const delivery = Number(document.getElementById("billDelivery").value) || 0;
+  const discount = Number(document.getElementById("billDiscount").value) || 0;
+  document.getElementById("billTotalPreview").textContent = "₹" + (billSubtotal() + delivery - discount);
+}
+
+document.getElementById("billOrderSelect")?.addEventListener("change", e => {
+  const idx = e.target.value;
+  if (idx === "") {
+    billItems = [];
+    document.getElementById("billName").value = "";
+    document.getElementById("billPhone").value = "";
+    document.getElementById("billDiscount").value = 0;
+  } else {
+    const o = ORDERS[Number(idx)];
+    document.getElementById("billName").value = o.name || "";
+    document.getElementById("billPhone").value = o.phone || "";
+    document.getElementById("billDiscount").value = o.discount || 0;
+    billItems = o.items.map(it => ({ name: it.name, qty: it.qty, unitPrice: it.unitPrice, row: it.row }));
+  }
+  renderBillItems();
+});
+document.getElementById("billAddItemBtn")?.addEventListener("click", () => {
+  billItems.push({ name: "", qty: 1, unitPrice: 0 });
+  renderBillItems();
+});
+document.getElementById("billDelivery")?.addEventListener("input", updateBillTotal);
+document.getElementById("billDiscount")?.addEventListener("input", updateBillTotal);
+
+document.getElementById("generateBillBtn")?.addEventListener("click", () => {
+  const name = document.getElementById("billName").value.trim();
+  const phone = document.getElementById("billPhone").value.trim();
+  const delivery = Number(document.getElementById("billDelivery").value) || 0;
+  const discount = Number(document.getElementById("billDiscount").value) || 0;
+  const valid = billItems.filter(it => it.name && it.qty > 0);
+  if (!valid.length) { setStatus("err", "Add at least one item with a name and quantity."); return; }
+  openBillWindow(name, phone, valid, delivery, discount);
+});
+
+function openBillWindow(name, phone, items, delivery, discount) {
+  const subtotal = items.reduce((s, it) => s + it.unitPrice * it.qty, 0);
+  const total = subtotal + delivery - discount;
+  const billNo = "CS" + Date.now().toString().slice(-8);
+  const dateStr = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const base = location.href.replace(/admin\.html.*$/, "");
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Invoice ${billNo} — ChillScenes3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif; color:#2b2620; background:#f4f1ec; padding:30px 16px;}
+  .invoice{max-width:760px; margin:0 auto; background:#fff; padding:44px; border-radius:12px; box-shadow:0 10px 40px rgba(43,38,32,.1);}
+  .inv-head{display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:26px; border-bottom:2px solid #c1694a; margin-bottom:26px;}
+  .brand{display:flex; align-items:center; gap:14px;}
+  .brand img{width:56px; height:56px; object-fit:contain;}
+  .brand-name{font-family:'Fraunces',serif; font-size:1.7rem; font-weight:700;}
+  .brand-name span{color:#c1694a;}
+  .brand-sub{font-size:.78rem; color:#8a7f74; margin-top:3px;}
+  .inv-meta{text-align:right; font-size:.85rem; color:#8a7f74; line-height:1.8;}
+  .inv-meta strong{color:#2b2620; display:block; font-size:1.05rem; font-family:'Fraunces',serif;}
+  .bill-to{margin-bottom:26px;}
+  .bill-to h3{font-size:.72rem; text-transform:uppercase; letter-spacing:.1em; color:#8a7f74; margin-bottom:7px; font-family:'Inter',sans-serif; font-weight:600;}
+  .bill-to p{font-size:1rem; font-weight:600;}
+  .bill-to span{font-size:.88rem; color:#8a7f74; font-weight:400;}
+  table{width:100%; border-collapse:collapse; margin-bottom:22px;}
+  th{text-align:left; font-size:.72rem; text-transform:uppercase; letter-spacing:.07em; color:#8a7f74; padding:10px 8px; border-bottom:1px solid #e5ded4;}
+  td{padding:13px 8px; border-bottom:1px solid #f0ebe3; font-size:.92rem;}
+  th:last-child, td:last-child, th:nth-child(3), td:nth-child(3), th:nth-child(2), td:nth-child(2){text-align:right;}
+  .totals{margin-left:auto; width:270px;}
+  .totals div{display:flex; justify-content:space-between; padding:7px 0; font-size:.92rem; color:#8a7f74;}
+  .totals div span:last-child{color:#2b2620; font-weight:500;}
+  .totals .grand{border-top:2px solid #c1694a; margin-top:8px; padding-top:13px; font-size:1.15rem; font-weight:700; color:#2b2620;}
+  .totals .grand span:last-child{color:#c1694a; font-weight:700;}
+  .pay{display:flex; gap:26px; align-items:center; margin-top:34px; padding-top:26px; border-top:1px solid #e5ded4;}
+  .pay img{width:132px; height:132px; object-fit:contain; border:1px solid #e5ded4; border-radius:10px; padding:6px;}
+  .pay h4{font-family:'Fraunces',serif; font-size:1.05rem; margin-bottom:7px;}
+  .pay p{font-size:.88rem; color:#8a7f74; line-height:1.8;}
+  .pay strong{color:#2b2620;}
+  .foot{text-align:center; margin-top:30px; padding-top:20px; border-top:1px solid #e5ded4; font-size:.8rem; color:#8a7f74; line-height:1.8;}
+  .actions{max-width:760px; margin:0 auto 18px; display:flex; gap:10px; justify-content:flex-end;}
+  .actions button{padding:11px 24px; border-radius:999px; border:1px solid #c1694a; background:#c1694a; color:#fff; font-family:inherit; font-weight:600; font-size:.88rem; cursor:pointer;}
+  .actions button.secondary{background:transparent; color:#c1694a;}
+  .actions button:disabled{opacity:.6; cursor:default;}
+  @media print{ body{background:#fff; padding:0;} .invoice{box-shadow:none; padding:20px;} .actions{display:none;} }
+</style></head>
+<body>
+<div class="actions">
+  <button class="secondary" onclick="window.print()">Print / Save as PDF</button>
+  <button id="sendBtn">Download &amp; Send on WhatsApp</button>
+</div>
+<div class="invoice" id="invoiceBox">
+  <div class="inv-head">
+    <div class="brand">
+      <img src="${base}images/logo.png" alt="">
+      <div>
+        <div class="brand-name">ChillScenes<span>3D</span></div>
+        <div class="brand-sub">Custom 3D printed products<br>Miyapur, Hyderabad – 500050</div>
+      </div>
+    </div>
+    <div class="inv-meta">
+      <strong>INVOICE</strong>
+      #${billNo}<br>${dateStr}
+    </div>
+  </div>
+
+  <div class="bill-to">
+    <h3>Billed To</h3>
+    <p>${name || "Customer"}${phone ? ` <span>· ${phone}</span>` : ""}</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+    <tbody>
+      ${items.map(it => `<tr><td>${it.name}</td><td>${it.qty}</td><td>₹${it.unitPrice}</td><td>₹${it.unitPrice * it.qty}</td></tr>`).join("")}
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div><span>Subtotal</span><span>₹${subtotal}</span></div>
+    <div><span>Delivery</span><span>₹${delivery}</span></div>
+    ${discount ? `<div><span>Discount</span><span>−₹${discount}</span></div>` : ""}
+    <div class="grand"><span>Total</span><span>₹${total}</span></div>
+  </div>
+
+  <div class="pay">
+    <img src="${base}images/scanner.png" alt="Payment QR">
+    <div>
+      <h4>Scan to Pay</h4>
+      <p>
+        UPI / Any payment app<br>
+        Phone: <strong>+91 98107 04170</strong><br>
+        Instagram: <strong>@chillscenes.3d</strong>
+      </p>
+    </div>
+  </div>
+
+  <div class="foot">
+    Thank you for your order!<br>
+    For any questions, message us on WhatsApp at +91 98107 04170
+  </div>
+</div>
+<script>
+  var CLIENT_PHONE = ${JSON.stringify(phone || "")};
+  var CLIENT_NAME = ${JSON.stringify(name || "")};
+  var BILL_NO = ${JSON.stringify(billNo)};
+  var BILL_TOTAL = ${JSON.stringify(String(total))};
+
+  function waNumber(raw) {
+    var d = String(raw || "").replace(/\\D/g, "");
+    if (!d) return "";
+    if (d.length === 10) d = "91" + d;          // plain Indian mobile
+    if (d.length === 11 && d[0] === "0") d = "91" + d.slice(1);
+    return d;
+  }
+
+  document.getElementById("sendBtn").addEventListener("click", function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = "Preparing…";
+
+    html2canvas(document.getElementById("invoiceBox"), { scale: 2, backgroundColor: "#ffffff", useCORS: true })
+      .then(function (canvas) {
+        canvas.toBlob(function (blob) {
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = "Invoice-" + BILL_NO + ".png";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+
+          var msg = "Hi " + (CLIENT_NAME || "there") + "! Your bill from ChillScenes3D is ready.\\n\\n"
+            + "Invoice #" + BILL_NO + "\\nTotal: Rs " + BILL_TOTAL + "\\n\\n"
+            + "The bill image is attached — payment details (scan to pay) are on the bill itself.\\n\\n"
+            + "Thank you for your order!";
+
+          var num = waNumber(CLIENT_PHONE);
+          var waUrl = num
+            ? "https://wa.me/" + num + "?text=" + encodeURIComponent(msg)
+            : "https://wa.me/?text=" + encodeURIComponent(msg);
+
+          btn.textContent = "Opening WhatsApp…";
+          window.open(waUrl, "_blank");
+          setTimeout(function () {
+            btn.disabled = false;
+            btn.textContent = "Download & Send on WhatsApp";
+          }, 1500);
+        }, "image/png");
+      })
+      .catch(function (e) {
+        alert("Couldn't capture the bill image: " + e.message);
+        btn.disabled = false;
+        btn.textContent = "Download & Send on WhatsApp";
+      });
+  });
+<\/script>
+</body></html>`;
+
+  const w = window.open("", "_blank");
+  if (!w) { setStatus("err", "Popup blocked — allow popups to generate the bill."); return; }
+  w.document.write(html);
+  w.document.close();
+}
 
 /* ---------- SITE VISITS ---------- */
 async function loadViewStats() {
@@ -893,6 +1222,8 @@ async function fetchAdminCatalog() {
     renderCouponsList();
     renderManageProducts();
     loadViewStats();
+    fetchOrders();
+    renderBillItems();
     const n = await loadImageList();
     setStatus("ok", `Ready — ${n} photo(s) found.`);
     formArea.classList.add("enabled");
