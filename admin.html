@@ -74,14 +74,16 @@
     color:var(--gray); font-size:.9rem;
   }
   .batch-remove:hover{color:#c0453a;}
-  .bill-item-row{display:flex; gap:8px; align-items:center; margin-bottom:8px;}
-  .bill-item-row input{
-    padding:9px 11px; border-radius:8px; background:var(--ink2); border:1px solid var(--border);
-    color:var(--cream); font-family:inherit; font-size:.85rem; min-width:0;
+  .bill-item-row{display:flex; gap:6px; align-items:center; margin-bottom:8px; flex-wrap:wrap;}
+  .bill-item-row input, .bill-item-row select{
+    padding:9px 10px; border-radius:8px; background:var(--ink2); border:1px solid var(--border);
+    color:var(--cream); font-family:inherit; font-size:.82rem; min-width:0;
   }
-  .bill-item-name{flex:3;}
-  .bill-item-qty{flex:0 0 62px;}
-  .bill-item-price{flex:0 0 90px;}
+  .bill-item-name{flex:3 1 150px;}
+  .bill-item-finish{flex:0 0 100px;}
+  .bill-item-color{flex:1 1 110px;}
+  .bill-item-qty{flex:0 0 58px;}
+  .bill-item-price{flex:0 0 84px;}
   .bill-item-remove{
     flex-shrink:0; width:30px; height:30px; border-radius:8px; background:none; border:none;
     color:var(--gray); font-size:.85rem;
@@ -610,6 +612,12 @@ function renderBillItems() {
   el.innerHTML = billItems.map((it, i) => `
     <div class="bill-item-row" data-i="${i}">
       <input type="text" class="bill-item-name" data-i="${i}" placeholder="Item name" value="${(it.name || "").replace(/"/g, "&quot;")}">
+      <select class="bill-item-finish" data-i="${i}">
+        <option value="" ${!it.finish ? "selected" : ""}>Finish…</option>
+        <option value="Basic" ${it.finish === "Basic" ? "selected" : ""}>Basic</option>
+        <option value="Premium" ${it.finish === "Premium" ? "selected" : ""}>Premium</option>
+      </select>
+      <input type="text" class="bill-item-color" data-i="${i}" placeholder="Colour (optional)" value="${(it.color || "").replace(/"/g, "&quot;")}">
       <input type="number" class="bill-item-qty" data-i="${i}" placeholder="Qty" min="1" value="${it.qty}">
       <input type="number" class="bill-item-price" data-i="${i}" placeholder="₹ each" min="0" value="${it.unitPrice}">
       <span class="bill-item-synced" title="${it.row ? "Price change saves to the Orders sheet" : ""}">${it.row ? "↻" : ""}</span>
@@ -618,6 +626,12 @@ function renderBillItems() {
 
   el.querySelectorAll(".bill-item-name").forEach(inp => {
     inp.addEventListener("input", () => { billItems[inp.dataset.i].name = inp.value; });
+  });
+  el.querySelectorAll(".bill-item-finish").forEach(sel => {
+    sel.addEventListener("change", () => { billItems[sel.dataset.i].finish = sel.value; });
+  });
+  el.querySelectorAll(".bill-item-color").forEach(inp => {
+    inp.addEventListener("input", () => { billItems[inp.dataset.i].color = inp.value; });
   });
   el.querySelectorAll(".bill-item-qty").forEach(inp => {
     inp.addEventListener("input", () => { billItems[inp.dataset.i].qty = Number(inp.value) || 0; updateBillTotal(); });
@@ -663,12 +677,23 @@ document.getElementById("billOrderSelect")?.addEventListener("change", e => {
     document.getElementById("billName").value = o.name || "";
     document.getElementById("billPhone").value = o.phone || "";
     document.getElementById("billDiscount").value = o.discount || 0;
-    billItems = o.items.map(it => ({ name: it.name, qty: it.qty, unitPrice: it.unitPrice, row: it.row }));
+    billItems = o.items.map(it => {
+      // Website orders store the variant in the name, e.g. "Horse (Premium)"
+      const m = String(it.name).match(/^(.*)\s+\((Basic|Premium)\)\s*$/i);
+      return {
+        name: m ? m[1] : it.name,
+        finish: m ? (m[2][0].toUpperCase() + m[2].slice(1).toLowerCase()) : "",
+        color: "",
+        qty: it.qty,
+        unitPrice: it.unitPrice,
+        row: it.row
+      };
+    });
   }
   renderBillItems();
 });
 document.getElementById("billAddItemBtn")?.addEventListener("click", () => {
-  billItems.push({ name: "", qty: 1, unitPrice: 0 });
+  billItems.push({ name: "", qty: 1, unitPrice: 0, finish: "", color: "" });
   renderBillItems();
 });
 document.getElementById("billDelivery")?.addEventListener("input", updateBillTotal);
@@ -688,6 +713,7 @@ function openBillWindow(name, phone, items, delivery, discount) {
   const subtotal = items.reduce((s, it) => s + it.unitPrice * it.qty, 0);
   const total = subtotal + delivery - discount;
   const billNo = "CS" + Date.now().toString().slice(-8);
+  const anyColor = items.some(it => it.color && it.color.trim());
   const dateStr = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
   const base = location.href.replace(/admin\.html.*$/, "");
 
@@ -712,18 +738,21 @@ function openBillWindow(name, phone, items, delivery, discount) {
   .bill-to p{font-size:1rem; font-weight:600;}
   .bill-to span{font-size:.88rem; color:#8a7f74; font-weight:400;}
   table{width:100%; border-collapse:collapse; margin-bottom:22px;}
-  th{text-align:left; font-size:.72rem; text-transform:uppercase; letter-spacing:.07em; color:#8a7f74; padding:10px 8px; border-bottom:1px solid #e5ded4;}
-  td{padding:13px 8px; border-bottom:1px solid #f0ebe3; font-size:.92rem;}
-  th:last-child, td:last-child, th:nth-child(3), td:nth-child(3), th:nth-child(2), td:nth-child(2){text-align:right;}
-  .totals{margin-left:auto; width:270px;}
+  th{text-align:right; font-size:.72rem; text-transform:uppercase; letter-spacing:.07em; color:#8a7f74; padding:10px 8px; border-bottom:1px solid #e5ded4;}
+  td{padding:13px 8px; border-bottom:1px solid #f0ebe3; font-size:.92rem; text-align:right;}
+  th:first-child, td:first-child{text-align:left;}
+  .col-finish, .col-color{text-align:left !important;}
+  td.col-finish, td.col-color{color:#8a7f74;}
+  .summary-row{display:flex; justify-content:space-between; align-items:flex-start; gap:30px; margin-top:8px;}
+  .totals{width:270px; flex-shrink:0;}
   .totals div{display:flex; justify-content:space-between; padding:7px 0; font-size:.92rem; color:#8a7f74;}
   .totals div span:last-child{color:#2b2620; font-weight:500;}
   .totals .grand{border-top:2px solid #c1694a; margin-top:8px; padding-top:13px; font-size:1.15rem; font-weight:700; color:#2b2620;}
   .totals .grand span:last-child{color:#c1694a; font-weight:700;}
-  .pay{display:flex; gap:26px; align-items:center; margin-top:34px; padding-top:26px; border-top:1px solid #e5ded4;}
-  .pay img{width:132px; height:132px; object-fit:contain; border:1px solid #e5ded4; border-radius:10px; padding:6px;}
-  .pay h4{font-family:'Fraunces',serif; font-size:1.05rem; margin-bottom:7px;}
-  .pay p{font-size:.88rem; color:#8a7f74; line-height:1.8;}
+  .pay{display:flex; gap:18px; align-items:center;}
+  .pay img{width:118px; height:118px; object-fit:contain; border:1px solid #e5ded4; border-radius:10px; padding:6px;}
+  .pay h4{font-family:'Fraunces',serif; font-size:1rem; margin-bottom:6px;}
+  .pay p{font-size:.84rem; color:#8a7f74; line-height:1.75;}
   .pay strong{color:#2b2620;}
   .foot{text-align:center; margin-top:30px; padding-top:20px; border-top:1px solid #e5ded4; font-size:.8rem; color:#8a7f74; line-height:1.8;}
   .actions{max-width:760px; margin:0 auto 18px; display:flex; gap:10px; justify-content:flex-end;}
@@ -758,28 +787,29 @@ function openBillWindow(name, phone, items, delivery, discount) {
   </div>
 
   <table>
-    <thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+    <thead><tr><th>Item</th><th class="col-finish">Finish</th>${anyColor ? '<th class="col-color">Colour</th>' : ""}<th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
     <tbody>
-      ${items.map(it => `<tr><td>${it.name}</td><td>${it.qty}</td><td>₹${it.unitPrice}</td><td>₹${it.unitPrice * it.qty}</td></tr>`).join("")}
+      ${items.map(it => `<tr><td>${it.name}</td><td class="col-finish">${it.finish || "—"}</td>${anyColor ? `<td class="col-color">${it.color || "—"}</td>` : ""}<td>${it.qty}</td><td>₹${it.unitPrice}</td><td>₹${it.unitPrice * it.qty}</td></tr>`).join("")}
     </tbody>
   </table>
 
-  <div class="totals">
-    <div><span>Subtotal</span><span>₹${subtotal}</span></div>
-    <div><span>Delivery</span><span>₹${delivery}</span></div>
-    ${discount ? `<div><span>Discount</span><span>−₹${discount}</span></div>` : ""}
-    <div class="grand"><span>Total</span><span>₹${total}</span></div>
-  </div>
-
-  <div class="pay">
-    <img src="${base}images/scanner.png" alt="Payment QR">
-    <div>
-      <h4>Scan to Pay</h4>
-      <p>
-        UPI / Any payment app<br>
-        Phone: <strong>+91 98107 04170</strong><br>
-        Instagram: <strong>@chillscenes.3d</strong>
-      </p>
+  <div class="summary-row">
+    <div class="pay">
+      <img src="${base}images/scanner.png" alt="Payment QR">
+      <div>
+        <h4>Scan to Pay</h4>
+        <p>
+          UPI / Any payment app<br>
+          Phone: <strong>+91 98107 04170</strong><br>
+          Instagram: <strong>@chillscenes.3d</strong>
+        </p>
+      </div>
+    </div>
+    <div class="totals">
+      <div><span>Subtotal</span><span>₹${subtotal}</span></div>
+      <div><span>Delivery</span><span>₹${delivery}</span></div>
+      ${discount ? `<div><span>Discount</span><span>−₹${discount}</span></div>` : ""}
+      <div class="grand"><span>Total</span><span>₹${total}</span></div>
     </div>
   </div>
 
