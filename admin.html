@@ -62,10 +62,11 @@
   .batch-row-top{display:flex; gap:8px;}
   .batch-name{flex:2; min-width:0;}
   .batch-price{flex:1; min-width:0;}
-  .batch-row-bottom{display:flex; gap:8px;}
+  .batch-row-bottom{display:flex; gap:8px; flex-wrap:wrap;}
+  .batch-category{flex:1 1 130px;}
   .batch-desc-preset{flex:0 0 130px;}
-  .batch-desc-text{flex:1; min-width:0;}
-  .batch-name, .batch-price, .batch-desc-text, .batch-desc-preset{
+  .batch-desc-text{flex:2 1 150px; min-width:0;}
+  .batch-name, .batch-price, .batch-desc-text, .batch-desc-preset, .batch-category{
     padding:9px 11px; border-radius:8px; background:var(--ink2); border:1px solid var(--border);
     color:var(--cream); font-family:inherit; font-size:.85rem;
   }
@@ -230,7 +231,7 @@
 
 <div class="status-bar ok" style="margin-bottom:14px;">
   <i class="fa-solid fa-eye"></i>
-  <span>Today: <strong id="viewsToday">—</strong> &nbsp;·&nbsp; Total: <strong id="viewsTotal">—</strong></span>
+  <span>Today: <strong id="viewsToday">—</strong> visits (<strong id="uniqueToday">—</strong> people) &nbsp;·&nbsp; Total: <strong id="viewsTotal">—</strong> (<strong id="uniqueTotal">—</strong> people)</span>
 </div>
 
 <details class="panel" style="margin-bottom:34px;">
@@ -293,20 +294,22 @@
 
 <fieldset id="formArea">
 
-  <div class="panel">
-    <h2><i class="fa-solid fa-tag"></i> New Category</h2>
-    <div class="field">
-      <label>Name</label>
-      <input type="text" id="catName" placeholder="e.g. Desk Lamps">
+  <details class="panel">
+    <summary><i class="fa-solid fa-tag icon"></i> Categories <i class="fa-solid fa-chevron-down chev"></i></summary>
+    <div class="details-body">
+      <div class="field">
+        <label>Name</label>
+        <input type="text" id="catName" placeholder="e.g. Desk Lamps">
+      </div>
+      <div class="field">
+        <label>Icon — tap to select</label>
+        <div class="emoji-grid" id="emojiGrid"></div>
+        <input type="text" id="catIcon" placeholder="or type/paste your own emoji" style="margin-top:10px;" maxlength="4">
+      </div>
+      <button class="btn btn-outline btn-block" id="addCategoryBtn" type="button">Add Category</button>
+      <div class="cat-list" id="catList"></div>
     </div>
-    <div class="field">
-      <label>Icon — tap to select</label>
-      <div class="emoji-grid" id="emojiGrid"></div>
-      <input type="text" id="catIcon" placeholder="or type/paste your own emoji" style="margin-top:10px;" maxlength="4">
-    </div>
-    <button class="btn btn-outline btn-block" id="addCategoryBtn" type="button">Add Category</button>
-    <div class="cat-list" id="catList"></div>
-  </div>
+  </details>
 
   <details class="panel">
     <summary><i class="fa-solid fa-truck icon"></i> Delivery Prices by State <i class="fa-solid fa-chevron-down chev"></i></summary>
@@ -339,7 +342,7 @@
     </div>
   </details>
 
-  <details class="panel" open>
+  <details class="panel">
     <summary><i class="fa-solid fa-plus icon"></i> Add Product <i class="fa-solid fa-chevron-down chev"></i></summary>
     <div class="details-body">
       <div class="field">
@@ -353,18 +356,11 @@
         </div>
       </div>
 
-      <div class="row2">
-        <div class="field">
-          <label>Category <span style="color:var(--gray); font-weight:400;">(applies to all below)</span></label>
-          <select id="pCategory"></select>
-        </div>
-        <div class="field" style="display:flex; align-items:flex-end;">
-          <div class="checkbox-row" style="margin-bottom:14px;">
-            <input type="checkbox" id="pFeatured" checked>
-            <label for="pFeatured" style="margin:0;">Show on homepage (Featured)</label>
-          </div>
-        </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="pFeatured" checked>
+        <label for="pFeatured" style="margin:0;">Show on homepage (Featured) — applies to all below</label>
       </div>
+      <select id="pCategory" style="display:none;"></select>
 
       <div id="batchRows"></div>
 
@@ -714,6 +710,18 @@ function openBillWindow(name, phone, items, delivery, discount) {
   const total = subtotal + delivery - discount;
   const billNo = "CS" + Date.now().toString().slice(-8);
   const anyColor = items.some(it => it.color && it.color.trim());
+
+  // Log this bill to the Bills sheet — best-effort, never blocks the bill window
+  postToScript({
+    action: "logBill",
+    billNo: billNo, name: name, phone: phone,
+    subtotal: subtotal, delivery: delivery, discount: discount, total: total,
+    items: items.map(it => ({ name: it.name, finish: it.finish || "", color: it.color || "", qty: it.qty, unitPrice: it.unitPrice }))
+  }).then(() => {
+    setStatus("ok", `Bill ${billNo} generated and saved.`);
+  }).catch(err => {
+    setStatus("err", "Bill generated, but couldn't save to sheet: " + err.message);
+  });
   const dateStr = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
   const base = location.href.replace(/admin\.html.*$/, "");
 
@@ -890,6 +898,8 @@ async function loadViewStats() {
 
     document.getElementById("viewsToday").textContent = (data.today ?? 0).toLocaleString();
     document.getElementById("viewsTotal").textContent = (data.total ?? 0).toLocaleString();
+    document.getElementById("uniqueToday").textContent = (data.uniqueToday ?? 0).toLocaleString();
+    document.getElementById("uniqueTotal").textContent = (data.uniqueTotal ?? 0).toLocaleString();
 
     const myId = localStorage.getItem("cs_device_id");
     const devices = data.devices || [];
@@ -897,14 +907,24 @@ async function loadViewStats() {
     if (myRow) myRow.style.display = (myId && devices.some(d => d.id === myId)) ? "block" : "none";
 
     const listEl = document.getElementById("deviceList");
-    listEl.innerHTML = devices.length ? devices.map(d => `
+    listEl.innerHTML = devices.length ? devices.map(d => {
+      const anon = !d.name && !d.phone;
+      const who = anon
+        ? `<span style="color:var(--gray);">Unknown · ${d.id.slice(0, 8)}…</span>`
+        : `${d.name || "—"}${d.phone ? " · " + d.phone : ""}`;
+      const flag = (anon && d.count >= 3) ? ' <span style="color:#c0453a; font-size:.72rem;">repeat, no details</span>' : "";
+      const last = d.lastSeen ? new Date(d.lastSeen).toLocaleDateString() : "";
+      return `
       <div class="delivery-row">
-        <span class="delivery-state mono" style="font-size:.78rem;">${d.id.slice(0, 10)}…${d.id === myId ? ' <span style="color:var(--orange);">(this browser)</span>' : ""}</span>
+        <span class="delivery-state" style="font-size:.8rem;">${who}${flag}${d.id === myId ? ' <span style="color:var(--orange);">(this browser)</span>' : ""}
+          <span style="display:block; color:var(--gray); font-size:.72rem;">last: ${last}</span>
+        </span>
         <span class="mono" style="color:var(--gray); margin-right:12px; font-size:.8rem;">${d.count} visit${d.count === 1 ? "" : "s"}</span>
         <button type="button" class="cat-remove device-remove" data-id="${d.id}" title="Remove">
           <i class="fa-solid fa-trash"></i>
         </button>
-      </div>`).join("") : `<p style="color:var(--gray); font-size:.85rem;">No visits yet.</p>`;
+      </div>`;
+    }).join("") : `<p style="color:var(--gray); font-size:.85rem;">No visits yet.</p>`;
 
     listEl.querySelectorAll(".device-remove").forEach(btn => {
       btn.addEventListener("click", async () => {
@@ -1176,7 +1196,21 @@ document.getElementById("refreshImages").addEventListener("click", async () => {
 /* ---------- BATCH ROWS (one per selected photo) ---------- */
 const DESC_PRESETS = ["Color Can Be Customized", "Any one. Color can be customised", "Size & Color can be customised"];
 
+function captureBatchDraft() {
+  Object.keys(selectedPhotos).forEach(id => {
+    const nameEl = document.querySelector(`.batch-name[data-id="${id}"]`);
+    if (!nameEl) return;
+    selectedPhotos[id].draft = {
+      name: nameEl.value,
+      price: document.querySelector(`.batch-price[data-id="${id}"]`)?.value || "",
+      category: document.querySelector(`.batch-category[data-id="${id}"]`)?.value || "",
+      desc: document.querySelector(`.batch-desc-text[data-id="${id}"]`)?.value || ""
+    };
+  });
+}
+
 function renderBatchRows() {
+  captureBatchDraft();
   const wrap = document.getElementById("batchRows");
   const submitBtn = document.getElementById("submitBtn");
   const ids = Object.keys(selectedPhotos);
@@ -1190,20 +1224,24 @@ function renderBatchRows() {
 
   wrap.innerHTML = ids.map(id => {
     const photo = selectedPhotos[id];
+    const d = photo.draft || {};
     return `
     <div class="batch-row" data-id="${id}">
       <img src="${photo.url}" alt="${photo.name}" class="batch-thumb">
       <div class="batch-fields">
         <div class="batch-row-top">
-          <input type="text" class="batch-name" data-id="${id}" placeholder="Product name">
-          <input type="number" class="batch-price" data-id="${id}" placeholder="Price ₹" min="0">
+          <input type="text" class="batch-name" data-id="${id}" placeholder="Product name" value="${(d.name || "").replace(/"/g, "&quot;")}">
+          <input type="number" class="batch-price" data-id="${id}" placeholder="Price ₹" min="0" value="${d.price || ""}">
         </div>
         <div class="batch-row-bottom">
+          <select class="batch-category" data-id="${id}">
+            ${CATEGORIES.filter(c => c.slug !== "no-category").map(c => `<option value="${c.slug}" ${d.category === c.slug ? "selected" : ""}>${c.icon} ${c.name}</option>`).join("")}
+          </select>
           <select class="batch-desc-preset" data-id="${id}">
             <option value="">Common desc…</option>
-            ${DESC_PRESETS.map(d => `<option value="${d}">${d}</option>`).join("")}
+            ${DESC_PRESETS.map(d2 => `<option value="${d2}">${d2}</option>`).join("")}
           </select>
-          <input type="text" class="batch-desc-text" data-id="${id}" placeholder="Description">
+          <input type="text" class="batch-desc-text" data-id="${id}" placeholder="Description" value="${(d.desc || "").replace(/"/g, "&quot;")}">
         </div>
       </div>
       <button type="button" class="batch-remove" data-id="${id}" title="Remove from batch"><i class="fa-solid fa-xmark"></i></button>
@@ -1285,6 +1323,7 @@ document.getElementById("addCategoryBtn").addEventListener("click", async () => 
     CATEGORIES.push({ slug: data.slug, name, icon, visible: true });
     refreshCategoryDropdown();
     renderCategoryList();
+    renderBatchRows(); // so the new category shows in per-item dropdowns
     catSelect.value = data.slug;
     setStatus("ok", `Category "${name}" added.`);
     logSuccess(`Category: ${name}`, data.slug);
@@ -1298,7 +1337,6 @@ document.getElementById("addCategoryBtn").addEventListener("click", async () => 
 
 /* ---------- ADD PRODUCT (batch) ---------- */
 document.getElementById("submitBtn").addEventListener("click", async () => {
-  const category = catSelect.value;
   const featured = document.getElementById("pFeatured").checked;
   const ids = Object.keys(selectedPhotos);
   if (!ids.length) return;
@@ -1308,6 +1346,7 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
     photo: selectedPhotos[id],
     name: document.querySelector(`.batch-name[data-id="${id}"]`).value.trim(),
     price: document.querySelector(`.batch-price[data-id="${id}"]`).value.trim(),
+    category: document.querySelector(`.batch-category[data-id="${id}"]`).value,
     desc: document.querySelector(`.batch-desc-text[data-id="${id}"]`).value.trim()
   }));
 
@@ -1320,7 +1359,7 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
   for (const r of rows) {
     submitBtn.textContent = `Saving ${done + 1} of ${rows.length}…`;
     try {
-      const data = await postToScript({ action: "addProduct", name: r.name, price: Number(r.price), category, imageId: r.photo.id, imageName: r.photo.name, desc: r.desc, featured });
+      const data = await postToScript({ action: "addProduct", name: r.name, price: Number(r.price), category: r.category, imageId: r.photo.id, imageName: r.photo.name, desc: r.desc, featured });
       logSuccess(r.name, data.id);
       done++;
     } catch (err) {
