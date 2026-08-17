@@ -202,21 +202,14 @@ function renderProductDetail() {
 }
 
 /* ---------- MOBILE MENU ---------- */
-let menuScrollLockY = 0;
 function initMobileMenu() {
   document.getElementById("menuBtn")?.addEventListener("click", () => {
     document.getElementById("mobileMenu")?.classList.add("active");
     document.getElementById("menuOverlay")?.classList.add("active");
-    menuScrollLockY = window.scrollY;
-    document.body.style.top = -menuScrollLockY + "px";
-    document.body.classList.add("scroll-locked");
   });
   document.getElementById("menuOverlay")?.addEventListener("click", () => {
     document.getElementById("mobileMenu")?.classList.remove("active");
     document.getElementById("menuOverlay")?.classList.remove("active");
-    document.body.classList.remove("scroll-locked");
-    document.body.style.top = "";
-    window.scrollTo(0, menuScrollLockY);
   });
 }
 
@@ -292,14 +285,7 @@ function initSearch() {
   });
 }
 
-function renderAll() {
-  renderCategoryGrid();
-  renderFeatured();
-  renderShop();
-  renderProductDetail();
-  initReveal();
-}
-
+/* ---------- VISIT TRACKING + WELCOME POPUP ---------- */
 function getDeviceId() {
   let id = localStorage.getItem("cs_device_id");
   if (!id) {
@@ -310,7 +296,74 @@ function getDeviceId() {
 }
 function trackSiteView() {
   if (typeof APPSCRIPT_URL === "undefined" || APPSCRIPT_URL.indexOf("PASTE_YOUR") === 0) return;
-  fetch(`${APPSCRIPT_URL}?action=trackView&deviceId=${encodeURIComponent(getDeviceId())}`).catch(() => {});
+  // One visit per browsing session — otherwise every page load (home → shop →
+  // product → product) would inflate a single visit into five.
+  if (sessionStorage.getItem("cs_visit_logged")) return;
+  sessionStorage.setItem("cs_visit_logged", "1");
+  const phone = localStorage.getItem("cs_phone") || "";
+  fetch(`${APPSCRIPT_URL}?action=trackView&deviceId=${encodeURIComponent(getDeviceId())}&phone=${encodeURIComponent(phone)}`).catch(() => {});
+}
+
+const WELCOME_DELAY_MS = 25000;      // let them browse first
+const SKIP_SNOOZE_DAYS = 1;          // if they skip, ask again tomorrow
+
+function shouldShowWelcome() {
+  if (localStorage.getItem("cs_name") && localStorage.getItem("cs_phone")) return false;
+  const snoozed = Number(localStorage.getItem("cs_welcome_snooze") || 0);
+  if (snoozed && Date.now() < snoozed) return false;
+  return true;
+}
+function snoozeWelcome() {
+  localStorage.setItem("cs_welcome_snooze", String(Date.now() + SKIP_SNOOZE_DAYS * 86400000));
+}
+function saveVisitorDetails(name, phone) {
+  localStorage.setItem("cs_name", name);
+  localStorage.setItem("cs_phone", phone);
+  if (typeof APPSCRIPT_URL === "undefined" || APPSCRIPT_URL.indexOf("PASTE_YOUR") === 0) return;
+  fetch(APPSCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "saveVisitor", deviceId: getDeviceId(), name, phone })
+  }).catch(() => {});
+}
+
+function showWelcomePopup() {
+  if (!shouldShowWelcome()) return;
+  const el = document.getElementById("welcomeModal");
+  if (!el) return;
+  el.classList.add("active");
+
+  const close = () => el.classList.remove("active");
+  el.querySelector("#welcomeSkip").onclick = () => { snoozeWelcome(); close(); };
+  el.querySelector("#welcomeOverlay").onclick = () => { snoozeWelcome(); close(); };
+  el.querySelector("#welcomeSave").onclick = () => {
+    const name = el.querySelector("#welcomeName").value.trim();
+    const phone = el.querySelector("#welcomePhone").value.trim();
+    if (!name || !phone) { el.querySelector("#welcomeErr").textContent = "Please add both, or tap Skip."; return; }
+    saveVisitorDetails(name, phone);
+    close();
+    renderCartDrawer(); // pick up the autofilled details right away
+  };
+}
+
+function initWelcomePopup() {
+  if (!shouldShowWelcome()) return;
+  let fired = false;
+  const fire = () => { if (!fired) { fired = true; showWelcomePopup(); } };
+  setTimeout(fire, WELCOME_DELAY_MS);
+  // …or as soon as they've scrolled a bit, whichever comes first
+  const onScroll = () => {
+    if (window.scrollY > window.innerHeight * 1.2) { window.removeEventListener("scroll", onScroll); fire(); }
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+}
+
+function renderAll() {
+  renderCategoryGrid();
+  renderFeatured();
+  renderShop();
+  renderProductDetail();
+  initReveal();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -318,6 +371,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initMobileMenu();
   initSearch();
   trackSiteView();
+  initWelcomePopup();
   document.getElementById("featuredSort")?.addEventListener("change", renderFeatured);
   document.getElementById("shopSort")?.addEventListener("change", renderShop);
   document.getElementById("featuredPrev")?.addEventListener("click", () => {
